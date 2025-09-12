@@ -3,10 +3,6 @@
     <!-- 页面标题 -->
     <view class="page-header">
       <text class="page-title">就餐状态</text>
-      <view class="date-selector" @click="showDatePicker = true">
-        <text class="date-text">{{ selectedDate }}</text>
-        <text class="iconfont">📅</text>
-      </view>
     </view>
 
     <!-- 用户信息卡片 -->
@@ -145,26 +141,6 @@
       </view>
     </view>
 
-    <!-- 日期选择器 -->
-    <uni-popup ref="datePickerPopup" type="bottom" :mask-click="true">
-      <view class="date-picker-popup">
-        <view class="popup-header">
-          <text class="popup-title">选择日期</text>
-          <button class="close-btn" @click="showDatePicker = false">×</button>
-        </view>
-        <picker 
-          mode="date" 
-          :value="selectedDate" 
-          @change="onDateChange"
-          :start="getMinDate()"
-          :end="getMaxDate()"
-        >
-          <view class="picker-display">
-            <text>{{ selectedDate }}</text>
-          </view>
-        </picker>
-      </view>
-    </uni-popup>
   </view>
 </template>
 
@@ -183,11 +159,9 @@ export default {
   },
   data() {
     return {
-      selectedDate: '',
       diningStatus: null,
       userInfo: null,
       isProcessing: false,
-      showDatePicker: false,
       mealTypes: [
         { 
           type: 'breakfast', 
@@ -216,9 +190,6 @@ export default {
   methods: {
     // 初始化页面
     initPage() {
-      // 设置默认日期为今天（使用TimeUtils确保iOS兼容性）
-      this.selectedDate = this.$getCurrentDate()
-      
       // 获取用户信息
       this.loadUserInfo()
       
@@ -243,7 +214,9 @@ export default {
       try {
         uni.showLoading({ title: '加载中...' })
         
-        const response = await api.diningConfirmation.getStatus(this.selectedDate)
+        // 直接使用今天的日期
+        const today = this.$getCurrentDate()
+        const response = await api.diningConfirmation.getStatus(today)
         
         if (response.success) {
           this.diningStatus = response.data
@@ -418,26 +391,11 @@ export default {
 
     // 去报餐
     goToRegister(mealType) {
-      // 使用智能导航函数，自动判断页面类型
-      this.$smartNavigate(`/pages/dining/dining?mealType=${mealType}&date=${this.selectedDate}`)
+      // 使用智能导航函数，自动判断页面类型，使用今天的日期
+      const today = this.$getCurrentDate()
+      this.$smartNavigate(`/pages/dining/dining?mealType=${mealType}&date=${today}`)
     },
 
-    // 日期变化处理
-    onDateChange(e) {
-      this.selectedDate = e.detail.value
-      this.showDatePicker = false
-      this.loadDiningStatus()
-    },
-
-    // 获取最小日期（今天）
-    getMinDate() {
-      return this.$getCurrentDate()
-    },
-
-    // 获取最大日期（30天后）
-    getMaxDate() {
-      return this.$getNextDay(this.$getCurrentDate(), 30)
-    },
 
     // 格式化时间
     formatTime(timeString, format = 'short') {
@@ -480,9 +438,6 @@ export default {
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 30rpx;
 }
 
@@ -492,24 +447,6 @@ export default {
   color: #333;
 }
 
-.date-selector {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  padding: 16rpx 24rpx;
-  background: white;
-  border-radius: 12rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
-}
-
-.date-text {
-  font-size: 28rpx;
-  color: #333;
-}
-
-.iconfont {
-  font-size: 24rpx;
-}
 
 .user-info-card {
   display: flex;
@@ -794,48 +731,6 @@ export default {
   color: #666;
 }
 
-.date-picker-popup {
-  background: white;
-  border-radius: 20rpx 20rpx 0 0;
-  padding: 30rpx;
-}
-
-.popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30rpx;
-  padding-bottom: 20rpx;
-  border-bottom: 2rpx solid #e9ecef;
-}
-
-.popup-title {
-  font-size: 36rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.close-btn {
-  width: 60rpx;
-  height: 60rpx;
-  background: #f8f9fa;
-  border: none;
-  border-radius: 50%;
-  font-size: 32rpx;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.picker-display {
-  padding: 20rpx;
-  background: #f8f9fa;
-  border-radius: 12rpx;
-  text-align: center;
-  font-size: 28rpx;
-  color: #333;
-}
 
 /* 响应式设计 */
 @media (max-width: 768px) {

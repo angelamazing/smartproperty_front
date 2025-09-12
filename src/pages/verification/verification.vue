@@ -28,7 +28,7 @@
           <text class="method-title">出示用餐卡片</text>
           <text class="method-desc">显示个人报餐状态卡片</text>
         </view>
-        <view class="method-arrow">></view>
+        <view class="method-arrow">›</view>
       </view>
       
       <!-- 2. 扫码验证 -->
@@ -38,7 +38,7 @@
           <text class="method-title">扫码验证</text>
           <text class="method-desc">扫描餐桌二维码验证用餐</text>
         </view>
-        <view class="method-arrow">></view>
+        <view class="method-arrow">›</view>
       </view>
       
       <!-- 3. NFC验证 -->
@@ -48,7 +48,7 @@
           <text class="method-title">NFC验证</text>
           <text class="method-desc">使用NFC卡片快速验证</text>
         </view>
-        <view class="method-arrow">></view>
+        <view class="method-arrow">›</view>
       </view>
     </view>
 
@@ -742,6 +742,10 @@ export default {
   font-size: 18px;
   color: #999;
   font-weight: 600;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* 手动输入表单 */

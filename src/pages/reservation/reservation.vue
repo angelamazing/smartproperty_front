@@ -362,6 +362,7 @@ import auth from '@/utils/auth.js'
 import api from '@/utils/api.js'
 import TimeUtils from '@/utils/timeUtils.js'
 import timeMixin from '@/mixins/timeMixin.js'
+// 移除dayjs依赖，使用原生JavaScript Date对象
 
 export default {
   name: 'Reservation',
@@ -551,17 +552,41 @@ export default {
      * 选择日期
      */
     previousDate() {
-      const date = this.$createDate(this.selectedDate)
-      const previousDay = date.subtract(1, 'day')
-      this.selectedDate = this.$formatDate(previousDay)
-      this.loadVenues()
+      try {
+        // 使用原生Date对象处理日期
+        const currentDate = new Date(this.selectedDate)
+        if (isNaN(currentDate.getTime())) {
+          console.error('无法解析当前日期:', this.selectedDate)
+          return
+        }
+        
+        const previousDay = new Date(currentDate)
+        previousDay.setDate(currentDate.getDate() - 1)
+        
+        this.selectedDate = this.formatDateForPicker(previousDay)
+        this.loadVenues()
+      } catch (error) {
+        console.error('日期切换错误:', error)
+      }
     },
 
     nextDate() {
-      const date = this.$createDate(this.selectedDate)
-      const nextDay = date.add(1, 'day')
-      this.selectedDate = this.$formatDate(nextDay)
-      this.loadVenues()
+      try {
+        // 使用原生Date对象处理日期
+        const currentDate = new Date(this.selectedDate)
+        if (isNaN(currentDate.getTime())) {
+          console.error('无法解析当前日期:', this.selectedDate)
+          return
+        }
+        
+        const nextDay = new Date(currentDate)
+        nextDay.setDate(currentDate.getDate() + 1)
+        
+        this.selectedDate = this.formatDateForPicker(nextDay)
+        this.loadVenues()
+      } catch (error) {
+        console.error('日期切换错误:', error)
+      }
     },
 
     /**
@@ -927,23 +952,24 @@ export default {
       if (!dateStr) return ''
       
       try {
-        // 使用TimeUtils确保iOS兼容性
-        const dayjsTime = this.$createDate(dateStr)
-        if (!dayjsTime) return ''
+        // 使用原生Date对象进行日期比较，避免dayjs配置问题
+        const targetDate = new Date(dateStr)
+        if (isNaN(targetDate.getTime())) return ''
         
-        const today = this.$createDate()
-        const tomorrow = today.add(1, 'day')
+        const today = new Date()
+        const tomorrow = new Date(today)
+        tomorrow.setDate(today.getDate() + 1)
         
         // 判断是否为今天或明天
-        if (dayjsTime.isSame(today, 'day')) {
-          return `今天 ${dayjsTime.format('M月D日')}`
-        } else if (dayjsTime.isSame(tomorrow, 'day')) {
-          return `明天 ${dayjsTime.format('M月D日')}`
+        if (this.isSameDate(targetDate, today)) {
+          return `今天 ${this.formatDateShort(targetDate)}`
+        } else if (this.isSameDate(targetDate, tomorrow)) {
+          return `明天 ${this.formatDateShort(targetDate)}`
         } else {
-          return dayjsTime.format('M月D日 dddd')
+          return this.formatDateWithWeekday(targetDate)
         }
       } catch (error) {
-        console.error('日期格式化错误:', error)
+        console.error('日期格式化错误:', error, '输入值:', dateStr)
         return ''
       }
     },
@@ -975,6 +1001,16 @@ export default {
       const month = String(date.getMonth() + 1).padStart(2, '0')
       const day = String(date.getDate()).padStart(2, '0')
       return `${month}-${day} ${weekday}`
+    },
+
+    /**
+     * 格式化日期为选择器格式 (YYYY-MM-DD)
+     */
+    formatDateForPicker(date) {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     },
 
     /**

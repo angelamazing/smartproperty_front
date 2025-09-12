@@ -157,7 +157,13 @@ export default {
       if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
       if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
       
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString().slice(0, 5)
+      // 使用iOS兼容的日期格式化
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
     },
     
     /**
@@ -170,7 +176,7 @@ export default {
     /**
      * 显示系统公告
      */
-    show    SystemNotice,(notice) {
+    showSystemNotice(notice) {
       this.addNotification({
         type: notice.type || 'info',
         title: notice.title || '系统公告',

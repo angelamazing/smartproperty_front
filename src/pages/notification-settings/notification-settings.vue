@@ -291,7 +291,12 @@ export default {
      */
     update否tificationStats(type = 'add') {
       try {
-        const today = new Date().toDateString()
+        // 使用iOS兼容的日期字符串
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const todayStr = `${year}-${month}-${day}`
         const lastUpdate = uni.getStorageSync('last否tificationUpdate')
         
         if (type === 'add') {
@@ -299,7 +304,7 @@ export default {
           this.notificationStats.unread++
           
           // 如果是今天第一次更新，重置今日计数
-          if (lastUpdate !== today) {
+          if (lastUpdate !== todayStr) {
             this.notificationStats.today = 1
           } else {
             this.notificationStats.today++
