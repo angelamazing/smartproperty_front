@@ -513,11 +513,13 @@ import BottomNav from '@/components/BottomNav.vue'
 import UserDetailModal from '@/components/UserDetailModal.vue'
 import UserEditModal from '@/components/UserEditModal.vue'
 import api from '@/utils/api'
-  import UserAvatar from '@/components/UserAvatar.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
 import PermissionGuard from '@/components/PermissionGuard.vue'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'UsersAdmin',
+  mixins: [timeMixin],
   components: {
     BottomNav,
     UserDetailModal,

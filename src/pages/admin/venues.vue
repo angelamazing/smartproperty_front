@@ -435,9 +435,11 @@ import BottomNav from '@/components/BottomNav.vue'
 import VenueEditModal from '@/components/VenueEditModal.vue'
 import TimeSlotEditModal from '@/components/TimeSlotEditModal.vue'
 import api from '@/utils/api'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'VenuesAdmin',
+  mixins: [timeMixin],
   components: {
     BottomNav,
     VenueEditModal,

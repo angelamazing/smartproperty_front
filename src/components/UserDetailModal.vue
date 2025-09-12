@@ -176,9 +176,11 @@
 
 <script>
 import api from '@/utils/api'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'UserDetailModal',
+  mixins: [timeMixin],
   props: {
     visible: {
       type: Boolean,

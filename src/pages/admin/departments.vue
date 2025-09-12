@@ -150,9 +150,11 @@
 <script>
 import UserAvatar from '@/components/UserAvatar.vue'
 import api from '@/utils/api.js'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'DepartmentsAdmin',
+  mixins: [timeMixin],
   components: {    UserAvatar,
   },
   data() {

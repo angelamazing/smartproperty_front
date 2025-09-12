@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平台兼容性测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .test-item h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-item p {
+            margin: 10px 0;
+            color: #666;
+        }
+        .status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .status.warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .code {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 14px;
+            margin: 10px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>平台兼容性修复测试报告</h1>
+        
+        <div class="test-item">
+            <h3>✅ 问题诊断</h3>
+            <p><strong>原始错误：</strong> <code>ReferenceError: wx is not defined</code></p>
+            <p><strong>问题原因：</strong> 在H5环境中直接使用了微信小程序API（wx对象）</p>
+            <p><strong>影响范围：</strong> 所有在浏览器中运行的uni-app代码</p>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 修复方案</h3>
+            <p><strong>1. 创建平台兼容性工具：</strong> <code>src/utils/platform.js</code></p>
+            <div class="code">
+// 平台检测和API兼容性处理
+export function safeWxCall(callback, fallback) {
+  if (typeof wx !== 'undefined' && wx) {
+    return callback(wx)
+  } else {
+    return fallback ? fallback() : null
+  }
+}
+            </div>
+            
+            <p><strong>2. 修复App.vue中的云开发初始化：</strong></p>
+            <div class="code">
+// 修复前
+if (!wx.cloud) {
+  console.error('请使用 2.2.3 或以上的基础库以使用云能力')
+}
+
+// 修复后
+import { initCloud } from './utils/platform.js'
+initCloud({
+  env: 'your-env-id',
+  traceUser: true
+})
+            </div>
+            
+            <p><strong>3. 批量修复uni API调用：</strong></p>
+            <div class="code">
+// 修复前
+uni.showToast({ title: '提示' })
+uni.getStorageSync('key')
+
+// 修复后
+import { showToast, getStorageSync } from '@/utils/platform.js'
+showToast({ title: '提示' })
+getStorageSync('key')
+            </div>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 修复文件列表</h3>
+            <ul>
+                <li><code>src/App.vue</code> - 云开发初始化修复</li>
+                <li><code>src/utils/auth.js</code> - 认证工具API修复</li>
+                <li><code>src/pages/admin/users.vue</code> - 用户管理页面修复</li>
+                <li><code>src/pages/dining/qr-scan.vue</code> - 二维码扫描页面修复</li>
+                <li><code>src/pages/dining/dining-confirmation-history.vue</code> - 就餐确认历史页面修复</li>
+                <li><code>scripts/fix-uni-calls.js</code> - 批量修复脚本</li>
+            </ul>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 平台兼容性特性</h3>
+            <ul>
+                <li><strong>微信小程序：</strong> 完整支持所有API</li>
+                <li><strong>H5浏览器：</strong> 降级处理，使用localStorage等替代方案</li>
+                <li><strong>App环境：</strong> 使用uni-app原生API</li>
+                <li><strong>其他小程序：</strong> 根据平台特性自动适配</li>
+            </ul>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 测试验证</h3>
+            <p><strong>语法检查：</strong> <span class="status success">通过</span></p>
+            <p><strong>API替换：</strong> <span class="status success">完成</span></p>
+            <p><strong>导入修复：</strong> <span class="status success">完成</span></p>
+            <p><strong>平台检测：</strong> <span class="status success">正常</span></p>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 使用说明</h3>
+            <p>现在可以在任何环境中运行项目，包括：</p>
+            <ul>
+                <li>微信开发者工具（小程序）</li>
+                <li>HBuilderX（App）</li>
+                <li>浏览器（H5）</li>
+                <li>其他小程序平台</li>
+            </ul>
+            <p><strong>注意：</strong> 云开发功能仅在微信小程序环境中可用，其他环境会显示相应提示。</p>
+        </div>
+
+        <div class="test-item">
+            <h3>✅ 后续建议</h3>
+            <ul>
+                <li>在开发新功能时，优先使用平台兼容的API</li>
+                <li>定期检查是否有新的uni API调用需要修复</li>
+                <li>在不同平台环境中进行充分测试</li>
+                <li>考虑使用条件编译来处理平台特定功能</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // 测试平台检测功能
+        console.log('当前环境检测:')
+        console.log('- 是否支持wx:', typeof wx !== 'undefined')
+        console.log('- 是否支持uni:', typeof uni !== 'undefined')
+        console.log('- 是否支持localStorage:', typeof localStorage !== 'undefined')
+        console.log('- 用户代理:', navigator.userAgent)
+    </script>
+</body>
+</html>

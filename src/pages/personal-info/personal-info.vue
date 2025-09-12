@@ -201,10 +201,12 @@
 
 <script>
 import api from '@/utils/api'
-  import UserAvatar from '@/components/UserAvatar.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'PersonalInfo',
+  mixins: [timeMixin],
   components: {
     UserAvatar
   },
