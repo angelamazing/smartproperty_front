@@ -94,9 +94,18 @@ function request(options) {
         if (res.statusCode === 200) {
           resolve(res.data)
         } else if (res.statusCode === 401) {
-          // Token过期或无效，跳转到登录页
-          handleAuthError()
-          reject(new Error('登录已过期，请重新登录'))
+          // 检查是否是登录请求，如果是则返回具体错误信息
+          if (options.url.includes('/api/auth/')) {
+            // 登录相关请求，返回后端的具体错误信息
+            const errorData = res.data || {}
+            const error = new Error(errorData.message || '用户名或密码错误')
+            error.response = { data: errorData, status: res.statusCode }
+            reject(error)
+          } else {
+            // 其他请求的401错误，认为是Token过期
+            handleAuthError()
+            reject(new Error('登录已过期，请重新登录'))
+          }
         } else if (res.statusCode === 403) {
           reject(new Error('权限不足'))
         } else if (res.statusCode === 404) {

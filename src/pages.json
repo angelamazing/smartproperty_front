@@ -303,6 +303,22 @@
         "navigationBarBackgroundColor": "#667eea",
         "navigationBarTextStyle": "white"
       }
+    },
+    {
+      "path": "pages/visitor-reservation/visitor-reservation",
+      "style": {
+        "navigationBarTitleText": "来访预约",
+        "navigationBarBackgroundColor": "#4ecdc4",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/video-monitoring/video-monitoring",
+      "style": {
+        "navigationBarTitleText": "视频监控",
+        "navigationBarBackgroundColor": "#f093fb",
+        "navigationBarTextStyle": "white"
+      }
     }
   ],
   "tabBar": {

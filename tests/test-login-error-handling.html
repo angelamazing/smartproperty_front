@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录错误处理测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .test-title {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .error-test {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .error-test h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .error-test p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .test-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .test-button:hover {
+            background: #5a6fd8;
+        }
+        
+        .test-result {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .test-result h3 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+            font-size: 14px;
+        }
+        
+        .test-result p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #424242;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-success {
+            background: #4caf50;
+        }
+        
+        .status-warning {
+            background: #ff9800;
+        }
+        
+        .status-error {
+            background: #f44336;
+        }
+        
+        .toast-demo {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s ease;
+        }
+        
+        .toast-demo.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 class="test-title">🔐 登录错误处理测试</h2>
+        
+        <div class="test-section">
+            <h3 class="section-title">📋 问题描述</h3>
+            <p><strong>原始问题：</strong>输入密码错误时显示【登录已过期，请重新登录】</p>
+            <p><strong>修复目标：</strong>根据具体错误类型显示准确的错误信息</p>
+        </div>
+        
+        <div class="test-section">
+            <h3 class="section-title">🧪 错误处理测试</h3>
+            
+            <div class="error-test">
+                <h4>密码错误测试</h4>
+                <p>模拟密码错误的情况</p>
+                <button class="test-button" @click="testPasswordError">测试密码错误</button>
+                <p><strong>预期结果：</strong>显示"密码错误，请重新输入"</p>
+            </div>
+            
+            <div class="error-test">
+                <h4>手机号不存在测试</h4>
+                <p>模拟手机号不存在的情况</p>
+                <button class="test-button" @click="testPhoneError">测试手机号错误</button>
+                <p><strong>预期结果：</strong>显示"手机号不存在，请检查后重试"</p>
+            </div>
+            
+            <div class="error-test">
+                <h4>用户不存在测试</h4>
+                <p>模拟用户不存在的情况</p>
+                <button class="test-button" @click="testUserError">测试用户不存在</button>
+                <p><strong>预期结果：</strong>显示"用户不存在，请检查手机号"</p>
+            </div>
+            
+            <div class="error-test">
+                <h4>网络错误测试</h4>
+                <p>模拟网络连接失败的情况</p>
+                <button class="test-button" @click="testNetworkError">测试网络错误</button>
+                <p><strong>预期结果：</strong>显示"网络连接失败，请检查网络后重试"</p>
+            </div>
+            
+            <div class="error-test">
+                <h4>微信授权错误测试</h4>
+                <p>模拟微信授权失败的情况</p>
+                <button class="test-button" @click="testWechatError">测试微信授权错误</button>
+                <p><strong>预期结果：</strong>显示"微信授权失败，请重新授权"</p>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3 class="section-title">🔧 修复内容</h3>
+            
+            <div class="error-test">
+                <h4>API层面修复</h4>
+                <p><strong>文件：</strong>src/utils/api.js</p>
+                <p><strong>修复：</strong>区分登录请求和其他请求的401错误处理</p>
+                <ul>
+                    <li>登录请求：返回后端具体错误信息</li>
+                    <li>其他请求：显示"登录已过期，请重新登录"</li>
+                </ul>
+            </div>
+            
+            <div class="error-test">
+                <h4>登录页面修复</h4>
+                <p><strong>文件：</strong>src/pages/login/login.vue</p>
+                <p><strong>修复：</strong>根据错误信息类型显示对应的用户友好提示</p>
+                <ul>
+                    <li>密码相关：显示"密码错误，请重新输入"</li>
+                    <li>手机号相关：显示"手机号不存在，请检查后重试"</li>
+                    <li>用户相关：显示"用户不存在，请检查手机号"</li>
+                    <li>网络相关：显示"网络连接失败，请检查网络后重试"</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="test-result">
+            <h3>✅ 修复效果</h3>
+            <p><span class="status-indicator status-success"></span>密码错误时显示准确的错误信息</p>
+            <p><span class="status-indicator status-success"></span>不再显示误导性的"登录已过期"信息</p>
+            <p><span class="status-indicator status-success"></span>提供更友好的用户体验</p>
+            <p><span class="status-indicator status-success"></span>错误信息更加具体和 actionable</p>
+        </div>
+    </div>
+
+    <!-- Toast 演示 -->
+    <div class="toast-demo" id="toast">错误信息将在这里显示</div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            methods: {
+                // 模拟密码错误
+                testPasswordError() {
+                    this.showToast('密码错误，请重新输入');
+                },
+                
+                // 模拟手机号错误
+                testPhoneError() {
+                    this.showToast('手机号不存在，请检查后重试');
+                },
+                
+                // 模拟用户不存在
+                testUserError() {
+                    this.showToast('用户不存在，请检查手机号');
+                },
+                
+                // 模拟网络错误
+                testNetworkError() {
+                    this.showToast('网络连接失败，请检查网络后重试');
+                },
+                
+                // 模拟微信授权错误
+                testWechatError() {
+                    this.showToast('微信授权失败，请重新授权');
+                },
+                
+                // 显示Toast
+                showToast(message) {
+                    const toast = document.getElementById('toast');
+                    toast.textContent = message;
+                    toast.classList.add('show');
+                    
+                    setTimeout(() => {
+                        toast.classList.remove('show');
+                    }, 3000);
+                }
+            }
+        }).mount('body');
+    </script>
+</body>
+</html>

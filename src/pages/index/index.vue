@@ -90,20 +90,20 @@
           <text class="function-name">日常报餐</text>
           <text class="function-desc">部门批量报餐</text>
         </view>
-        <view class="function-item" @click="goToSpecialReservation">
-          <view class="function-icon special">📅</view>
-          <text class="function-name">特殊预约</text>
-          <text class="function-desc">商务接待预约</text>
+        <view class="function-item" @click="goToVisitorReservation">
+          <view class="function-icon visitor">👥</view>
+          <text class="function-name">来访预约</text>
+          <text class="function-desc">访客预约登记</text>
         </view>
         <view class="function-item" @click="goToReservation">
           <view class="function-icon reservation">🏸</view>
           <text class="function-name">球馆预约</text>
           <text class="function-desc">场地时间预约</text>
         </view>
-        <view class="function-item" @click="goToVerification">
-          <view class="function-icon verification">✅</view>
-          <text class="function-name">用餐验证</text>
-          <text class="function-desc">扫码验证用餐</text>
+        <view class="function-item" @click="goToVideoMonitoring">
+          <view class="function-icon monitoring">📹</view>
+          <text class="function-name">视频监控</text>
+          <text class="function-desc">实时监控查看</text>
         </view>
       </view>
     </view>
@@ -423,11 +423,11 @@ export default {
     },
 
     /**
-     * 跳转到特殊预约
+     * 跳转到来访预约
      */
-    goToSpecialReservation() {
+    goToVisitorReservation() {
       uni.navigateTo({
-        url: '/pages/special-reservation/special-reservation'
+        url: '/pages/visitor-reservation/visitor-reservation'
       })
     },
 
@@ -441,11 +441,11 @@ export default {
     },
 
     /**
-     * 跳转到用餐验证
+     * 跳转到视频监控
      */
-    goToVerification() {
+    goToVideoMonitoring() {
       uni.navigateTo({
-        url: '/pages/verification/verification'
+        url: '/pages/video-monitoring/video-monitoring'
       })
     },
 
@@ -752,7 +752,7 @@ export default {
   background: linear-gradient(135deg, #ff6b6b, #ee5a24);
 }
 
-.function-icon.special {
+.function-icon.visitor {
   background: linear-gradient(135deg, #4ecdc4, #44a08d);
 }
 
@@ -760,7 +760,7 @@ export default {
   background: linear-gradient(135deg, #45b7d1, #96c93d);
 }
 
-.function-icon.verification {
+.function-icon.monitoring {
   background: linear-gradient(135deg, #f093fb, #f5576c);
 }
 

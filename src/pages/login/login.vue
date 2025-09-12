@@ -51,7 +51,6 @@
               <input 
                 class="password-input" 
                 :type="showPassword ? 'text' : 'password'"
-                :password="!showPassword"
                 placeholder="请输入密码" 
                 v-model="password"
                 @input="handlePasswordInput"
@@ -293,9 +292,26 @@ export default {
         }
       } catch (error) {
         console.error('微信登录失败:', error)
+        
+        // 根据错误类型显示不同的提示信息
+        let errorMessage = '微信登录失败，请重试'
+        
+        if (error.message) {
+          if (error.message.includes('授权') || error.message.includes('authorize')) {
+            errorMessage = '微信授权失败，请重新授权'
+          } else if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMessage = '网络连接失败，请检查网络后重试'
+          } else if (error.message.includes('用户') || error.message.includes('user')) {
+            errorMessage = '用户信息获取失败，请重试'
+          } else {
+            errorMessage = error.message
+          }
+        }
+        
         uni.showToast({
-          title: error.message || '登录失败，请重试',
-          icon: 'none'
+          title: errorMessage,
+          icon: 'none',
+          duration: 3000
         })
       } finally {
         this.wechatLoading = false
@@ -373,9 +389,28 @@ export default {
         }
       } catch (error) {
         console.error('手机号登录失败:', error)
+        
+        // 根据错误类型显示不同的提示信息
+        let errorMessage = '登录失败，请重试'
+        
+        if (error.message) {
+          if (error.message.includes('密码') || error.message.includes('password')) {
+            errorMessage = '密码错误，请重新输入'
+          } else if (error.message.includes('手机号') || error.message.includes('phone')) {
+            errorMessage = '手机号不存在，请检查后重试'
+          } else if (error.message.includes('用户') || error.message.includes('user')) {
+            errorMessage = '用户不存在，请检查手机号'
+          } else if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMessage = '网络连接失败，请检查网络后重试'
+          } else {
+            errorMessage = error.message
+          }
+        }
+        
         uni.showToast({
-          title: error.message || '登录失败，请重试',
-          icon: 'none'
+          title: errorMessage,
+          icon: 'none',
+          duration: 3000
         })
       } finally {
         this.phoneLoading = false
