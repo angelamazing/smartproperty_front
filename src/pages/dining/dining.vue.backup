@@ -1,0 +1,2539 @@
+<template>
+  <view class="dining-container">
+    <!-- 顶部操作栏 -->
+    <view class="action-bar">
+      <view class="action-tabs">
+        <view 
+          class="tab-item" 
+          :class="{ active: currentTab === 'menu' }"
+          @click="switchTab('menu')"
+        >
+          <text class="tab-text">今日菜单</text>
+        </view>
+        <view 
+          class="tab-item" 
+          :class="{ active: currentTab === 'order' }"
+          @click="switchTab('order')"
+        >
+          <text class="tab-text">部门报餐</text>
+        </view>
+        <view 
+          class="tab-item" 
+          :class="{ active: currentTab === 'record' }"
+          @click="switchTab('record')"
+        >
+          <text class="tab-text">报餐记录</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 今日菜单标签页 -->
+    <view class="tab-content" v-if="currentTab === 'menu'">
+      <view class="menu-header">
+        <view class="date-selector">
+          <button class="date-btn" @click="previousDate">
+            <text class="date-icon">◀</text>
+          </button>
+          <text class="current-date">{{ selectedDate }}</text>
+          <button class="date-btn" @click="nextDate">
+            <text class="date-icon">▶</text>
+          </button>
+        </view>
+        <view class="meal-selector">
+          <view
+            class="meal-tab"
+            :class="{ active: selectedMeal === meal.value }"
+            v-for="meal in mealTypes || []"
+            :key="meal.value"
+            @click="selectMeal(meal.value)"
+          >
+            <text class="meal-text">{{ meal.label }}</text>
+          </view>
+        </view>
+      </view>
+
+             <view class="menu-content" v-if="currentMenu">
+         <view class="menu-info">
+           <text class="menu-title">{{ getMealTypeText(currentMenu.mealType) }}菜单</text>
+           <text class="menu-time">{{ currentMenu.mealTime }}</text>
+           <text class="menu-status" :class="getStatusClass(currentMenu.publishStatus)">
+             {{ getStatusText(currentMenu.publishStatus) }}
+           </text>
+         </view>
+
+         <view class="dish-categories">
+           <view 
+             class="category-section" 
+             v-for="category in dishCategories || []" 
+             :key="category.value"
+           >
+             <view class="category-header">
+               <text class="category-title">{{ category.label }}</text>
+               <text class="dish-count">{{ getDishesByCategory(category.value).length }}道</text>
+             </view>
+             <view class="dish-list" v-if="getDishesByCategory(category.value).length > 0">
+               <view 
+                 class="dish-item" 
+                 v-for="dish in getDishesByCategory(category.value) || []" 
+                 :key="dish._id || dish.id"
+               >
+                 <view class="dish-info">
+                   <text class="dish-name">{{ dish.dishName || dish.name || '未知菜品' }}</text>
+                   <text class="dish-description">{{ dish.dishDescription || dish.description || '' }}</text>
+                   <view class="dish-tags">
+                     <text class="tag" v-if="dish.isSpicy">🌶️ 辣</text>
+                     <text class="tag" v-if="dish.isVegetarian">🥬 素</text>
+                     <text class="tag" v-if="dish.isRecommended">⭐ 推荐</text>
+                   </view>
+                 </view>
+                 <view class="dish-nutrition" v-if="dish.calories || dish.protein || dish.fat">
+                   <text class="nutrition-item" v-if="dish.calories">热量: {{ dish.calories }}kcal</text>
+                   <text class="nutrition-item" v-if="dish.protein">蛋白质: {{ dish.protein }}g</text>
+                   <text class="nutrition-item" v-if="dish.fat">脂肪: {{ dish.fat }}g</text>
+                 </view>
+               </view>
+             </view>
+           </view>
+         </view>
+      </view>
+
+      <view class="empty-menu" v-else>
+        <view class="empty-icon">🍽️</view>
+        <text class="empty-text">该日期暂无菜单</text>
+        <text class="empty-desc">请选择其他日期或餐次</text>
+      </view>
+    </view>
+
+    <!-- 部门报餐标签页 -->
+    <view class="tab-content" v-if="currentTab === 'order'">
+      <!-- 权限检查提示 -->
+      <view v-if="!hasDeptAdminPermission" class="permission-denied">
+        <view class="permission-icon">🚫</view>
+        <text class="permission-title">权限不足</text>
+        <text class="permission-desc">部门报餐功能需要部门管理员或系统管理员权限</text>
+        <view class="permission-info">
+          <text class="info-item">当前角色: {{ getRoleText(userRole) }}</text>
+        </view>
+      </view>
+
+      <!-- 部门报餐表单 -->
+      <view v-else class="order-form">
+          <view class="form-section">
+            <text class="section-label">用餐信息</text>
+            <view class="form-row">
+              <text class="form-label">用餐日期</text>
+              <picker
+                mode="date"
+                :value="orderForm.date"
+                @change="onDateChange"
+                class="form-picker"
+              >
+                <view class="picker-value">{{ orderForm.date }}</view>
+              </picker>
+            </view>
+            <view class="form-row">
+              <text class="form-label">用餐类型</text>
+              <picker
+                mode="selector"
+                :range="mealTypeOptions"
+                :value="mealTypeIndex"
+                @change="onMealTypeChange"
+                class="form-picker"
+              >
+                <view class="picker-value">{{ orderForm.mealType }}</view>
+              </picker>
+            </view>
+          </view>
+
+          <view class="form-section">
+            <text class="section-label">部门成员</text>
+            <view class="member-list">
+              <!-- 成员操作头部 -->
+              <view class="member-header">
+                <view class="select-all">
+                  <checkbox
+                    :checked="isAllSelected"
+                    @change="toggleSelectAll"
+                    class="select-checkbox"
+                  />
+                  <text class="select-text">全选</text>
+                </view>
+                <text class="member-count">已选择 {{ selectedMembers.length }}/{{ (deptMembers || []).length }} 人</text>
+              </view>
+
+              <!-- 搜索和筛选 -->
+              <view class="member-filters" v-if="(deptMembers || []).length > 5">
+                <view class="search-box">
+                  <input 
+                    class="search-input" 
+                    placeholder="搜索成员姓名" 
+                    v-model="memberSearchText"
+                    @input="onMemberSearch"
+                  />
+                  <view class="search-icon">🔍</view>
+                </view>
+                <view class="role-filters">
+                  <view 
+                    class="role-filter-item" 
+                    :class="{ active: currentRoleFilter === filter.value }"
+                    v-for="filter in roleFilterOptions"
+                    :key="filter.value"
+                    @click="setRoleFilter(filter.value)"
+                  >
+                    {{ filter.label }}
+                  </view>
+                </view>
+              </view>
+
+              <!-- 快速选择 -->
+              <view class="quick-select" v-if="(deptMembers || []).length > 10">
+                <text class="quick-select-label">快速选择：</text>
+                <view class="quick-select-actions">
+                  <view class="quick-action" @click="selectByRole('员工')">选择所有员工</view>
+                  <view class="quick-action" @click="selectByRole('部门管理员')">选择管理员</view>
+                  <view class="quick-action" @click="selectVisible">选择当前显示</view>
+                  <view class="quick-action" @click="clearSelection">清空选择</view>
+                </view>
+              </view>
+
+              <!-- 成员列表容器 -->
+              <view class="member-items-container">
+                <scroll-view 
+                  class="member-items-scroll" 
+                  scroll-y="true"
+                  :style="{ height: memberListHeight }"
+                  @scrolltolower="loadMoreMembers"
+                >
+                  <view class="member-items">
+                    <view
+                      class="member-item"
+                      v-for="member in filteredMembers"
+                      :key="member._id"
+                      @click="toggleMember(member._id)"
+                      :class="{ selected: isMemberSelected(member._id) }"
+                    >
+                      <checkbox
+                        :checked="isMemberSelected(member._id)"
+                        class="member-checkbox"
+                      />
+                      <view class="member-avatar-wrapper">
+                        <image
+                          class="member-avatar"
+                          :src="member.avatarUrl || '/static/logo.png'"
+                          mode="aspectFill"
+                          @error="handleAvatarError"
+                        ></image>
+                      </view>
+                      <view class="member-info">
+                        <text class="member-name">{{ member.name }}</text>
+                        <text class="member-role">{{ member.role }}</text>
+                        <text class="member-dept" v-if="member.department">{{ member.department }}</text>
+                      </view>
+                      <view class="member-status" :class="getMemberStatusClass(member._id)">
+                        {{ getMemberStatusText(member._id) }}
+                      </view>
+                    </view>
+                  </view>
+                  
+                  <!-- 加载更多提示 -->
+                  <view class="load-more" v-if="hasMoreMembers && filteredMembers.length >= memberPageSize">
+                    <text class="load-more-text">加载更多...</text>
+                  </view>
+                  
+                  <!-- 无匹配结果 -->
+                  <view class="no-members" v-if="filteredMembers.length === 0 && memberSearchText">
+                    <view class="no-members-icon">👥</view>
+                    <text class="no-members-text">未找到匹配的成员</text>
+                    <text class="no-members-desc">请尝试其他搜索关键词</text>
+                  </view>
+                </scroll-view>
+              </view>
+
+              <!-- 选中成员预览 -->
+              <view class="selected-members-preview" v-if="selectedMembers.length > 0">
+                <view class="preview-header">
+                  <text class="preview-title">已选择成员 ({{ selectedMembers.length }})</text>
+                  <view class="preview-toggle" @click="togglePreviewExpanded">
+                    {{ isPreviewExpanded ? '收起' : '展开' }}
+                  </view>
+                </view>
+                <view class="preview-content" v-if="isPreviewExpanded">
+                  <view class="selected-member-tags">
+                    <view 
+                      class="selected-member-tag"
+                      v-for="member in selectedMemberDetails"
+                      :key="member._id"
+                      @click="toggleMember(member._id)"
+                    >
+                      <text class="tag-name">{{ member.name }}</text>
+                      <text class="tag-close">×</text>
+                    </view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <view class="form-section">
+            <text class="section-label">备注信息</text>
+            <textarea
+              class="form-textarea"
+              placeholder="请输入特殊要求或备注信息"
+              v-model="orderForm.remark"
+              maxlength="200"
+            ></textarea>
+            <text class="char-count">{{ orderForm.remark.length }}/200</text>
+          </view>
+
+          <view class="form-actions">
+            <button class="btn-secondary" @click="resetForm">重置</button>
+            <button
+              class="btn-primary"
+              @click="submitOrder"
+              :disabled="!canSubmit || isSubmitting"
+              :loading="isSubmitting"
+            >
+              {{ isSubmitting ? '提交中...' : '提交报餐' }}
+            </button>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 报餐记录标签页 -->
+    <view class="tab-content" v-if="currentTab === 'record'">
+      <view class="record-header">
+        <text class="record-title">报餐记录</text>
+        <view class="record-filters">
+          <picker 
+            mode="date" 
+            :value="recordFilter.date" 
+            @change="onRecordDateChange"
+            class="filter-picker"
+          >
+            <view class="filter-value">{{ recordFilter.date }}</view>
+          </picker>
+          <picker 
+            mode="selector" 
+            :range="statusOptions" 
+            :value="statusIndex" 
+            @change="onStatusChange"
+            class="filter-picker"
+          >
+            <view class="filter-value">{{ recordFilter.status }}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="record-list" v-if="diningRecords && diningRecords.length > 0">
+        <view 
+          class="record-item" 
+          v-for="record in diningRecords || []" 
+          :key="record._id"
+          @click="viewRecordDetail(record)"
+        >
+          <view class="record-header">
+            <text class="record-date">{{ formatDate(record.diningDate) }}</text>
+            <text class="record-status" :class="getStatusClass(record.status)">
+              {{ getStatusText(record.status) }}
+            </text>
+          </view>
+          <view class="record-content">
+            <view class="record-info">
+              <text class="record-type">{{ getMealTypeText(record.mealType) }}</text>
+              <text class="record-count">{{ record.memberCount }}人</text>
+            </view>
+            <view class="record-members">
+              <text class="members-text">{{ record.memberNames.join('、') }}</text>
+            </view>
+            <view class="record-time">
+              <text class="time-label">提交时间:</text>
+              <text class="time-value">{{ formatTime(record.createTime) }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="empty-record" v-else>
+        <view class="empty-icon">📋</view>
+        <text class="empty-text">暂无报餐记录</text>
+        <text class="empty-desc">开始为部门成员报餐吧</text>
+      </view>
+
+      <!-- 加载更多 -->
+      <view class="load-more" v-if="hasMoreRecords">
+        <button class="load-more-btn" @click="loadMoreRecords" :loading="isLoadingMore">
+          {{ isLoadingMore ? '加载中...' : '加载更多' }}
+        </button>
+      </view>
+    </view>
+
+    <!-- 加载状态 -->
+    <view class="loading-container" v-if="isLoading">
+      <view class="loading-spinner"></view>
+      <text class="loading-text">加载中...</text>
+    </view>
+ 
+</template>
+
+<script>
+import auth from '@/utils/auth.js'
+import api from '@/utils/api.js'
+
+export default {
+  name: 'Dining',
+  data() {
+    return {
+      currentTab: 'menu',
+      isLoading: false,
+
+      // 权限相关
+      userRole: 'user',
+      hasDeptAdminPermission: false,
+
+      // 成员列表搜索和筛选
+      memberSearchText: '',
+      currentRoleFilter: 'all',
+      memberPageSize: 20,
+      memberCurrentPage: 1,
+      hasMoreMembers: false,
+      isPreviewExpanded: false,
+
+             // 菜单相关
+       selectedDate: '',
+       selectedMeal: 'lunch',
+       currentMenu: null,
+       
+       // 过滤相关
+       dishSearchText: '',
+       selectedCategoryFilter: 'all',
+       activeTagFilters: [],
+       priceRange: {
+         min: '',
+         max: ''
+       },
+
+      // 报餐表单
+      orderForm: {
+        date: '',
+        mealType: '午餐',
+        remark: ''
+      },
+
+      // 部门成员
+      deptMembers: [],
+      selectedMembers: [],
+
+      // 报餐记录
+      diningRecords: [],
+      recordFilter: {
+        date: '',
+        status: '全部'
+      },
+
+      // 分页
+      page: 1,
+      pageSize: 10,
+      hasMoreRecords: true,
+      isLoadingMore: false,
+
+      // 提交状态
+      isSubmitting: false
+    }
+  },
+
+  computed: {
+    mealTypes() {
+      return [
+        { label: '早餐', value: 'breakfast' },
+        { label: '午餐', value: 'lunch' },
+        { label: '晚餐', value: 'dinner' }
+      ]
+    },
+
+    mealTypeOptions() {
+      return this.mealTypes.map(item => item.label)
+    },
+
+    mealTypeIndex() {
+      return this.mealTypes.findIndex(item => item.label === this.orderForm.mealType)
+    },
+
+         dishCategories() {
+       // 根据实际API返回的分类动态生成
+       if (!this.currentMenu || !this.currentMenu.dishes) {
+         return [
+           { label: '主食', value: '主食' },
+           { label: '主菜', value: '主菜' },
+           { label: '素菜', value: '素菜' },
+           { label: '汤品', value: '汤品' },
+           { label: '饮品', value: '饮品' },
+           { label: '小食', value: '小食' }
+         ]
+       }
+       
+       // 从菜品数据中提取实际存在的分类
+       const categories = [...new Set(this.currentMenu.dishes.map(dish => 
+         dish.categoryName || dish.category || '未分类'
+       ))]
+       
+       return categories.map(category => ({
+         label: category,
+         value: category
+       }))
+     },
+     
+     // 所有分类列表（用于过滤）
+     allCategories() {
+       if (!this.currentMenu || !this.currentMenu.dishes) return []
+       return [...new Set(this.currentMenu.dishes.map(dish => 
+         dish.categoryName || dish.category || '未分类'
+       ))]
+     },
+     
+     // 过滤后的菜品数据
+     filteredDishes() {
+       if (!this.currentMenu || !this.currentMenu.dishes) return []
+       
+       let dishes = [...this.currentMenu.dishes]
+       
+       // 1. 搜索过滤
+       if (this.dishSearchText.trim()) {
+         const searchText = this.dishSearchText.trim().toLowerCase()
+         dishes = dishes.filter(dish => {
+           const dishName = (dish.dishName || dish.name || '').toLowerCase()
+           const description = (dish.dishDescription || dish.description || '').toLowerCase()
+           return dishName.includes(searchText) || description.includes(searchText)
+         })
+       }
+       
+       // 2. 分类过滤
+       if (this.selectedCategoryFilter !== 'all') {
+         dishes = dishes.filter(dish => {
+           const dishCategory = dish.categoryName || dish.category || '未分类'
+           return dishCategory === this.selectedCategoryFilter
+         })
+       }
+       
+       // 3. 标签过滤
+       if (this.activeTagFilters.length > 0) {
+         dishes = dishes.filter(dish => {
+           return this.activeTagFilters.every(tag => {
+             switch (tag) {
+               case 'spicy':
+                 return dish.isSpicy === true
+               case 'vegetarian':
+                 return dish.isVegetarian === true
+               case 'recommended':
+                 return dish.isRecommended === true
+               default:
+                 return true
+             }
+           })
+         })
+       }
+       
+       // 4. 价格过滤
+       if (this.priceRange.min !== '' || this.priceRange.max !== '') {
+         dishes = dishes.filter(dish => {
+           const price = dish.price || 0
+           const min = this.priceRange.min !== '' ? parseFloat(this.priceRange.min) : 0
+           const max = this.priceRange.max !== '' ? parseFloat(this.priceRange.max) : Infinity
+           return price >= min && price <= max
+         })
+       }
+       
+       return dishes
+     },
+
+    statusOptions() {
+      return ['全部', '待确认', '已确认', '已完成', '已取消']
+    },
+
+    statusIndex() {
+      return this.statusOptions.findIndex(item => item === this.recordFilter.status)
+    },
+
+    isAllSelected() {
+      return (this.deptMembers || []).length > 0 && this.selectedMembers.length === (this.deptMembers || []).length
+    },
+
+        canSubmit() {
+      const hasMembers = this.selectedMembers && this.selectedMembers.length > 0
+      const hasDate = this.orderForm.date && this.orderForm.date.trim() !== ''
+      const hasMealType = this.orderForm.mealType && this.orderForm.mealType.trim() !== ''
+
+      console.log('canSubmit检查:', {
+        hasMembers,
+        hasDate,
+        hasMealType,
+        selectedMembers: this.selectedMembers,
+        date: this.orderForm.date,
+        mealType: this.orderForm.mealType
+      })
+
+      return hasMembers && hasDate && hasMealType
+    },
+
+    // 角色筛选选项
+    roleFilterOptions() {
+      return [
+        { label: '全部', value: 'all' },
+        { label: '员工', value: '员工' },
+        { label: '管理员', value: '部门管理员' },
+        { label: '其他', value: 'other' }
+      ]
+    },
+
+    // 筛选后的成员列表
+    filteredMembers() {
+      let members = this.deptMembers || []
+      
+      // 角色筛选
+      if (this.currentRoleFilter !== 'all') {
+        if (this.currentRoleFilter === 'other') {
+          members = members.filter(member => 
+            member.role !== '员工' && member.role !== '部门管理员'
+          )
+        } else {
+          members = members.filter(member => member.role === this.currentRoleFilter)
+        }
+      }
+      
+      // 搜索筛选
+      if (this.memberSearchText.trim()) {
+        const searchText = this.memberSearchText.trim().toLowerCase()
+        members = members.filter(member => 
+          member.name.toLowerCase().includes(searchText) ||
+          (member.department && member.department.toLowerCase().includes(searchText))
+        )
+      }
+      
+      return members
+    },
+
+    // 成员列表高度（动态计算）
+    memberListHeight() {
+      const memberCount = this.filteredMembers.length
+      if (memberCount === 0) return '200rpx'
+      if (memberCount <= 3) return '300rpx'
+      if (memberCount <= 6) return '400rpx'
+      return '500rpx'
+    },
+
+    // 已选择的成员详情
+    selectedMemberDetails() {
+      const members = this.deptMembers || []
+      return this.selectedMembers.map(id => 
+        members.find(member => member._id === id)
+      ).filter(Boolean)
+    }
+  },
+
+  onLoad() {
+    this.initPage()
+  },
+
+  onShow() {
+    this.refreshData()
+  },
+
+  onPullDownRefresh() {
+    this.refreshData().then(() => {
+      uni.stopPullDownRefresh()
+    })
+  },
+
+  onReachBottom() {
+    if (this.currentTab === 'record' && this.hasMoreRecords && !this.isLoadingMore) {
+      this.loadMoreRecords()
+    }
+  },
+
+  methods: {
+    /**
+     * 初始化页面
+     */
+    async initPage() {
+      try {
+        this.isLoading = true
+
+        // 检查用户权限
+        await this.checkUserPermission()
+
+        // 设置默认日期为今天
+        const today = new Date()
+        this.selectedDate = this.formatDate(today)
+        this.orderForm.date = this.formatDate(today)
+        this.recordFilter.date = this.formatDate(today)
+
+        // 加载初始数据
+        await this.loadInitialData()
+      } catch (error) {
+        console.error('页面初始化失败:', error)
+        uni.showToast({
+          title: '页面加载失败',
+          icon: 'none'
+        })
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    /**
+     * 检查用户权限
+     */
+    async checkUserPermission() {
+      try {
+        // 获取用户信息
+        const userInfo = auth.getUserInfo()
+        if (userInfo) {
+          this.userRole = userInfo.role || 'user'
+          this.hasDeptAdminPermission = auth.isDeptAdmin()
+        } else {
+          // 如果没有用户信息，尝试重新获取
+          const result = await api.user.getInfo()
+          if (result && result.success && result.data) {
+            this.userRole = result.data.role || 'user'
+            this.hasDeptAdminPermission = ['dept_admin', 'sys_admin'].includes(this.userRole)
+            // 更新本地存储的用户信息
+            uni.setStorageSync('userInfo', result.data)
+          }
+        }
+
+        console.log('用户角色:', this.userRole, '部门管理员权限:', this.hasDeptAdminPermission)
+      } catch (error) {
+        console.error('检查用户权限失败:', error)
+        this.userRole = 'user'
+        this.hasDeptAdminPermission = false
+      }
+    },
+
+    /**
+     * 加载初始数据
+     */
+    async loadInitialData() {
+      try {
+        // 并行加载数据
+        const [menu, members, records] = await Promise.all([
+          this.loadMenu(),
+          this.loadDeptMembers(),
+          this.loadDiningRecords()
+        ])
+
+        this.currentMenu = menu
+        this.deptMembers = members
+        this.diningRecords = records
+      } catch (error) {
+        console.error('加载初始数据失败:', error)
+      }
+    },
+
+    /**
+     * 刷新数据
+     */
+    async refreshData() {
+      try {
+        switch (this.currentTab) {
+          case 'menu':
+            await this.loadMenu()
+            break
+          case 'order':
+            await this.loadDeptMembers()
+            break
+          case 'record':
+            this.page = 1
+            this.hasMoreRecords = true
+            await this.loadDiningRecords()
+            break
+        }
+      } catch (error) {
+        console.error('刷新数据失败:', error)
+      }
+    },
+
+    /**
+     * 切换标签页
+     */
+    switchTab(tab) {
+      this.currentTab = tab
+      this.refreshData()
+    },
+
+    /**
+     * 选择日期
+     */
+    previousDate() {
+      const date = new Date(this.selectedDate)
+      date.setDate(date.getDate() - 1)
+      this.selectedDate = this.formatDate(date)
+      this.loadMenu()
+    },
+
+    nextDate() {
+      const date = new Date(this.selectedDate)
+      date.setDate(date.getDate() + 1)
+      this.selectedDate = this.formatDate(date)
+      this.loadMenu()
+    },
+
+    /**
+     * 选择餐次
+     */
+    selectMeal(mealType) {
+      this.selectedMeal = mealType
+      this.loadMenu()
+    },
+
+    /**
+     * 加载菜单
+     */
+    async loadMenu() {
+      try {
+        console.log('正在加载菜单，参数:', { date: this.selectedDate, mealType: this.selectedMeal })
+        
+        // 使用正确的管理员接口获取菜单
+        const result = await api.admin.getMenuByDate({
+          date: this.selectedDate,
+          mealType: this.selectedMeal
+        })
+        
+        console.log('菜单API响应:', result)
+        
+        if (result && result.success && result.data) {
+          this.currentMenu = result.data
+          console.log('菜单加载成功:', this.currentMenu)
+          
+          // 检查菜品数据结构
+          if (this.currentMenu.dishes && this.currentMenu.dishes.length > 0) {
+            console.log('菜品数据:', this.currentMenu.dishes)
+            this.currentMenu.dishes.forEach((dish, index) => {
+              console.log(`菜品${index}:`, dish.name || dish.dishName, '分类:', dish.category || dish.categoryName)
+            })
+          } else {
+            console.log('没有菜品数据，尝试单独获取菜品')
+            
+            // 如果菜品数据为空，尝试单独获取菜品列表
+            if (this.currentMenu && this.currentMenu._id) {
+              await this.loadMenuDishes(this.currentMenu._id)
+            }
+          }
+        } else {
+          this.currentMenu = null
+          console.log('菜单数据为空或请求失败:', result)
+        }
+      } catch (error) {
+        console.error('加载菜单失败:', error)
+        this.currentMenu = null
+      }
+    },
+
+    /**
+     * 单独加载菜单菜品数据
+     */
+    async loadMenuDishes(menuId) {
+      try {
+        console.log('正在加载菜单菜品数据，菜单ID:', menuId)
+        const response = await api.admin.getMenuDishes(menuId)
+        console.log('菜品数据API响应:', response)
+        
+        if (response && response.success && response.data) {
+          // 更新菜单的菜品数据
+          if (this.currentMenu) {
+            this.currentMenu.dishes = response.data
+            console.log('菜品数据加载成功，数量:', this.currentMenu.dishes.length)
+          }
+        } else {
+          console.warn('获取菜品数据失败:', response?.message)
+        }
+      } catch (error) {
+        console.error('加载菜品数据失败:', error)
+      }
+    },
+
+    /**
+     * 加载部门成员
+     */
+    async loadDeptMembers() {
+      try {
+        const result = await api.dining.getDeptMembers()
+
+        if (result && result.success) {
+          this.deptMembers = result.data || []
+          this.selectedMembers = []
+
+          console.log('加载部门成员成功:', this.deptMembers.length, '人')
+
+          // 如果没有部门成员，显示提示
+          if (this.deptMembers.length === 0) {
+            uni.showToast({
+              title: '暂无部门成员数据',
+              icon: 'none',
+              duration: 1500
+            })
+          }
+        } else {
+          throw new Error(result?.message || '获取部门成员失败')
+        }
+      } catch (error) {
+        console.error('加载部门成员失败:', error)
+        this.deptMembers = []
+
+        let errorMessage = '加载部门成员失败'
+        if (error.message) {
+          if (error.message.includes('权限')) {
+            errorMessage = '权限不足，无法获取部门成员'
+          } else if (error.message.includes('网络')) {
+            errorMessage = '网络连接失败，请检查网络'
+          } else {
+            errorMessage = error.message
+          }
+        }
+
+        uni.showToast({
+          title: errorMessage,
+          icon: 'none',
+          duration: 2000
+        })
+      }
+    },
+
+    /**
+     * 加载报餐记录
+     */
+    async loadDiningRecords() {
+      try {
+        const params = {
+          date: this.recordFilter.date,
+          status: this.recordFilter.status === '全部' ? '' : this.recordFilter.status,
+          page: this.page,
+          pageSize: this.pageSize
+        }
+        
+        const result = await api.dining.getRecords(params)
+        
+        if (this.page === 1) {
+          this.diningRecords = result.data.records || []
+        } else {
+          this.diningRecords = [...this.diningRecords, ...(result.data.records || [])]
+        }
+        
+        this.hasMoreRecords = result.data.hasMore || false
+      } catch (error) {
+        console.error('加载报餐记录失败:', error)
+        this.diningRecords = []
+      }
+    },
+
+    /**
+     * 加载更多记录
+     */
+    async loadMoreRecords() {
+      if (this.isLoadingMore) return
+      
+      try {
+        this.isLoadingMore = true
+        this.page++
+        await this.loadDiningRecords()
+      } catch (error) {
+        console.error('加载更多记录失败:', error)
+        this.page--
+      } finally {
+        this.isLoadingMore = false
+      }
+    },
+
+    /**
+     * 切换全选
+     */
+    toggleSelectAll() {
+      console.log('切换全选，当前状态:', this.isAllSelected, '部门成员:', this.deptMembers)
+      if (this.isAllSelected) {
+        this.selectedMembers = []
+      } else {
+        // 创建新数组确保响应性
+        this.selectedMembers = [...(this.deptMembers || []).map(member => member._id)]
+      }
+      console.log('全选后选中:', this.selectedMembers)
+      
+      // 强制更新界面
+      this.$forceUpdate()
+    },
+
+    /**
+     * 切换成员选择
+     */
+    toggleMember(memberId) {
+      console.log('切换成员选择:', memberId, '当前选中:', this.selectedMembers)
+      const index = this.selectedMembers.indexOf(memberId)
+      if (index > -1) {
+        // 使用Vue的响应式方法
+        this.$set(this.selectedMembers, index, null)
+        this.selectedMembers = this.selectedMembers.filter(id => id !== null)
+      } else {
+        // 创建新数组确保响应性
+        this.selectedMembers = [...this.selectedMembers, memberId]
+      }
+      console.log('切换后选中:', this.selectedMembers)
+      
+      // 强制更新界面
+      this.$forceUpdate()
+    },
+
+    /**
+     * 检查成员是否被选中
+     */
+    isMemberSelected(memberId) {
+      return this.selectedMembers.includes(memberId)
+    },
+
+    /**
+     * 获取成员状态
+     */
+    getMemberStatusText(memberId) {
+      // 这里可以根据实际业务逻辑判断成员状态
+      return '可报餐'
+    },
+
+    getMemberStatusClass(memberId) {
+      return 'status-available'
+    },
+
+    /**
+     * 表单日期变化
+     */
+    onDateChange(e) {
+      this.orderForm.date = e.detail.value
+    },
+
+    /**
+     * 表单餐次变化
+     */
+    onMealTypeChange(e) {
+      this.orderForm.mealType = this.mealTypeOptions[e.detail.value]
+    },
+
+    /**
+     * 记录筛选日期变化
+     */
+    onRecordDateChange(e) {
+      this.recordFilter.date = e.detail.value
+      this.page = 1
+      this.hasMoreRecords = true
+      this.loadDiningRecords()
+    },
+
+    /**
+     * 记录筛选状态变化
+     */
+    onStatusChange(e) {
+      this.recordFilter.status = this.statusOptions[e.detail.value]
+      this.page = 1
+      this.hasMoreRecords = true
+      this.loadDiningRecords()
+    },
+
+    /**
+     * 重置表单
+     */
+    resetForm() {
+      this.orderForm = {
+        date: this.formatDate(new Date()),
+        mealType: '午餐',
+        remark: ''
+      }
+      this.selectedMembers = []
+    },
+
+    /**
+     * 提交报餐
+     */
+    async submitOrder() {
+      if (!this.canSubmit) return
+
+      // 再次检查权限
+      if (!this.hasDeptAdminPermission) {
+        uni.showToast({
+          title: '权限不足，无法提交报餐',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 数据验证
+      if (this.selectedMembers.length === 0) {
+        uni.showToast({
+          title: '请至少选择一位部门成员',
+          icon: 'none'
+        })
+        return
+      }
+
+      if (!this.orderForm.date) {
+        uni.showToast({
+          title: '请选择用餐日期',
+          icon: 'none'
+        })
+        return
+      }
+
+      if (!this.orderForm.mealType) {
+        uni.showToast({
+          title: '请选择餐次类型',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 检查日期是否合理
+      const selectedDate = new Date(this.orderForm.date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+
+      if (selectedDate < today) {
+        uni.showToast({
+          title: '不能为过去的日期报餐',
+          icon: 'none'
+        })
+        return
+      }
+
+      try {
+        this.isSubmitting = true
+
+        const orderData = {
+          date: this.orderForm.date,
+          mealType: this.getMealTypeValue(this.orderForm.mealType),
+          memberIds: this.selectedMembers,
+          remark: this.orderForm.remark
+        }
+
+        console.log('提交报餐数据:', orderData)
+
+        const result = await api.dining.submitDeptOrder(orderData)
+
+        if (result && result.success) {
+          const data = result.data || {}
+          const successCount = data.successCount || this.selectedMembers.length
+          const totalCount = data.totalCount || this.selectedMembers.length
+
+          uni.showToast({
+            title: `报餐提交成功 (${successCount}/${totalCount})`,
+            icon: 'success',
+            duration: 2000
+          })
+
+          // 重置表单
+          this.resetForm()
+
+          // 刷新记录
+          this.switchTab('record')
+        } else {
+          throw new Error(result?.message || '提交失败')
+        }
+      } catch (error) {
+        console.error('提交报餐失败:', error)
+
+        let errorMessage = '提交失败，请重试'
+
+        // 处理特定错误类型
+        if (error.message) {
+          if (error.message.includes('权限')) {
+            errorMessage = '权限不足，请联系管理员'
+          } else if (error.message.includes('日期')) {
+            errorMessage = '日期无效，请重新选择'
+          } else if (error.message.includes('成员')) {
+            errorMessage = '成员信息有误，请重新选择'
+          } else if (error.message.includes('网络') || error.message.includes('timeout')) {
+            errorMessage = '网络连接失败，请检查网络'
+          } else {
+            errorMessage = error.message
+          }
+        }
+
+        uni.showModal({
+          title: '提交失败',
+          content: errorMessage,
+          showCancel: false,
+          confirmText: '确定'
+        })
+      } finally {
+        this.isSubmitting = false
+      }
+    },
+
+    /**
+     * 查看记录详情
+     */
+    async viewRecordDetail(record) {
+      console.log('查看报餐记录详情:', record)
+      
+      // 显示加载提示
+      uni.showLoading({
+        title: '加载详情中...'
+      })
+      
+      try {
+        // 调用后端接口获取详细的人员名单
+        const result = await api.dining.getRecordDetail(record._id)
+        console.log('获取记录详情结果:', result)
+        
+        uni.hideLoading()
+        
+        if (result && result.success && result.data) {
+          const detailData = result.data
+          const memberNames = detailData.memberNames && detailData.memberNames.length > 0 
+            ? detailData.memberNames.join('、') 
+            : '无成员信息'
+          
+          const statusText = this.getStatusText(detailData.status || record.status)
+          const mealTypeText = this.getMealTypeText(detailData.mealType || record.mealType)
+          const createTime = this.formatTime(detailData.createTime || record.createTime)
+          
+          // 显示详细信息模态框
+          uni.showModal({
+            title: '报餐记录详情',
+            content: `用餐日期: ${detailData.diningDate || record.diningDate}\n餐次类型: ${mealTypeText}\n用餐人数: ${detailData.memberCount || record.memberCount}人\n用餐成员: ${memberNames}\n订单状态: ${statusText}\n提交时间: ${createTime}\n备注信息: ${detailData.remark || record.remark || '无'}`,
+            showCancel: false,
+            confirmText: '确定'
+          })
+        } else {
+          // 接口调用失败，使用原有数据显示
+          console.warn('获取记录详情失败，使用本地数据')
+          this.showRecordDetailFallback(record)
+        }
+      } catch (error) {
+        console.error('获取报餐记录详情失败:', error)
+        uni.hideLoading()
+        
+        // 网络错误或其他异常，询问用户是否查看基本信息
+        uni.showModal({
+          title: '获取详情失败',
+          content: '无法获取完整的人员名单信息，是否查看基本记录信息？',
+          success: (res) => {
+            if (res.confirm) {
+              this.showRecordDetailFallback(record)
+            }
+          }
+        })
+      }
+    },
+
+    /**
+     * 显示记录详情的备用方法（当接口调用失败时使用）
+     */
+    showRecordDetailFallback(record) {
+      const memberNames = record.memberNames ? record.memberNames.join('、') : '无成员信息'
+      const statusText = this.getStatusText(record.status)
+      const mealTypeText = this.getMealTypeText(record.mealType)
+      const createTime = this.formatTime(record.createTime)
+      
+      uni.showModal({
+        title: '报餐记录详情（基本信息）',
+        content: `用餐日期: ${record.diningDate}\n餐次类型: ${mealTypeText}\n用餐人数: ${record.memberCount}人\n用餐成员: ${memberNames}\n订单状态: ${statusText}\n提交时间: ${createTime}\n备注信息: ${record.remark || '无'}`,
+        showCancel: false,
+        confirmText: '确定'
+      })
+    },
+
+    /**
+     * 获取餐次类型值
+     */
+    getMealTypeValue(mealTypeText) {
+      const meal = this.mealTypes.find(item => item.label === mealTypeText)
+      return meal ? meal.value : 'lunch'
+    },
+
+    /**
+     * 根据分类获取菜品
+     */
+    getDishesByCategory(category) {
+      if (!this.currentMenu || !this.currentMenu.dishes) return []
+      
+      // 修复字段匹配：使用正确的字段名
+      const dishes = this.currentMenu.dishes.filter(dish => {
+        const dishCategory = dish.categoryName || dish.category || '未分类'
+        return dishCategory === category
+      })
+      
+      console.log(`分类"${category}"的菜品:`, dishes)
+      return dishes
+    },
+
+    /**
+     * 获取餐次类型文本
+     */
+    getMealTypeText(mealType) {
+      const meal = this.mealTypes.find(item => item.value === mealType)
+      return meal ? meal.label : '未知餐次'
+    },
+
+    /**
+     * 获取状态文本
+     */
+    getStatusText(status) {
+      const statusMap = {
+        'draft': '草稿',
+        'published': '已发布',
+        'confirmed': '已确认',
+        'completed': '已完成',
+        'cancelled': '已取消',
+        'pending': '待确认'
+      }
+      return statusMap[status] || '未知状态'
+    },
+
+    /**
+     * 获取状态样式类
+     */
+    getStatusClass(status) {
+      return `status-${status}`
+    },
+
+    /**
+     * 格式化日期
+     */
+    formatDate(date) {
+      const d = new Date(date)
+      const year = d.getFullYear()
+      const month = String(d.getMonth() + 1).padStart(2, '0')
+      const day = String(d.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+
+    /**
+     * 格式化时间
+     */
+    formatTime(time) {
+      if (!time) return ''
+
+      const date = new Date(time)
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hour = String(date.getHours()).padStart(2, '0')
+      const minute = String(date.getMinutes()).padStart(2, '0')
+
+      return `${month}-${day} ${hour}:${minute}`
+    },
+
+    /**
+     * 获取角色文本
+     */
+    getRoleText(role) {
+      const roleMap = {
+        'user': '普通用户',
+        'dept_admin': '部门管理员',
+        'sys_admin': '系统管理员',
+        'verifier': '验证员',
+        'guest': '游客'
+      }
+      return roleMap[role] || '未知角色'
+    },
+
+    /**
+     * 头像加载失败处理
+     */
+    handleAvatarError(e) {
+      console.log('头像加载失败:', e)
+      // 可以设置默认头像
+      e.target.src = '/static/logo.png'
+    },
+
+    /**
+     * 成员搜索
+     */
+    onMemberSearch() {
+      console.log('搜索成员:', this.memberSearchText)
+      // 搜索逻辑由 computed 属性 filteredMembers 处理
+    },
+
+    /**
+     * 设置角色筛选
+     */
+    setRoleFilter(role) {
+      console.log('设置角色筛选:', role)
+      this.currentRoleFilter = role
+    },
+
+    /**
+     * 按角色选择成员
+     */
+    selectByRole(role) {
+      console.log('按角色选择成员:', role)
+      const members = this.deptMembers || []
+      const roleMembers = members.filter(member => member.role === role)
+      const roleIds = roleMembers.map(member => member._id)
+      
+      // 合并到现有选择中
+      const newSelected = [...new Set([...this.selectedMembers, ...roleIds])]
+      this.selectedMembers = newSelected
+      
+      uni.showToast({
+        title: `已选择${roleMembers.length}个${role}`,
+        icon: 'success'
+      })
+      
+      this.$forceUpdate()
+    },
+
+    /**
+     * 选择当前显示的所有成员
+     */
+    selectVisible() {
+      console.log('选择当前显示的成员')
+      const visibleIds = this.filteredMembers.map(member => member._id)
+      const newSelected = [...new Set([...this.selectedMembers, ...visibleIds])]
+      this.selectedMembers = newSelected
+      
+      uni.showToast({
+        title: `已选择${visibleIds.length}个成员`,
+        icon: 'success'
+      })
+      
+      this.$forceUpdate()
+    },
+
+    /**
+     * 清空选择
+     */
+    clearSelection() {
+      console.log('清空选择')
+      this.selectedMembers = []
+      uni.showToast({
+        title: '已清空选择',
+        icon: 'success'
+      })
+      this.$forceUpdate()
+    },
+
+    /**
+     * 加载更多成员
+     */
+    loadMoreMembers() {
+      console.log('加载更多成员')
+      // 这里可以实现分页加载逻辑
+      // 当前为简单实现，实际可能需要调用API
+    },
+
+    /**
+     * 切换预览展开状态
+     */
+    togglePreviewExpanded() {
+      this.isPreviewExpanded = !this.isPreviewExpanded
+    },
+
+    /**
+     * 重置过滤器
+     */
+    resetFilters() {
+      this.dishSearchText = ''
+      this.selectedCategoryFilter = 'all'
+      this.activeTagFilters = []
+      this.priceRange = { min: '', max: '' }
+      this.loadMenu() // 重新加载菜单以应用新的过滤条件
+    },
+
+    /**
+     * 价格过滤输入变化
+     */
+    onPriceFilterChange() {
+      // 这里可以添加价格过滤的逻辑，例如实时更新 filteredDishes
+      // 例如：this.loadMenu()
+    }
+  }
+}
+</script>
+
+<style lang="scss" scoped>
+.dining-container {
+  height: 100vh;
+  background: #f8f9fa;
+  overflow: hidden;
+}
+
+/* 操作栏 */
+.action-bar {
+  background: #fff;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.action-tabs {
+  display: flex;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  padding: 8rpx;
+}
+
+.tab-item {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.tab-item.active {
+  background: #667eea;
+  color: #fff;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+/* 标签页内容 */
+.tab-content {
+  padding: 20rpx;
+  height: calc(100vh - 140rpx);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 菜单头部 */
+.menu-header {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.date-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 30rpx;
+}
+
+.date-btn {
+  background: #f8f9fa;
+  border: none;
+  border-radius: 50%;
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 20rpx;
+}
+
+.date-icon {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.current-date {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.meal-selector {
+  display: flex;
+  gap: 20rpx;
+}
+
+.meal-tab {
+  flex: 1;
+  text-align: center;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.meal-tab.active {
+  background: #667eea;
+  color: #fff;
+}
+
+.meal-text {
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+/* 菜单内容 */
+.menu-content {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.menu-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 30rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.menu-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
+}
+
+.menu-time {
+  font-size: 24rpx;
+  color: #666;
+  margin-right: 20rpx;
+}
+
+.menu-status {
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+}
+
+.status-published {
+  background: #d4edda;
+  color: #155724;
+}
+
+.status-draft {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+/* 菜品分类 */
+.dish-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 30rpx;
+}
+
+.category-section {
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.category-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.category-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.dish-count {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.dish-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.dish-item {
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.dish-info {
+  margin-bottom: 15rpx;
+}
+
+.dish-name {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.dish-description {
+  font-size: 22rpx;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 10rpx;
+}
+
+.dish-tags {
+  display: flex;
+  gap: 10rpx;
+}
+
+.tag {
+  font-size: 20rpx;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+
+.dish-nutrition {
+  display: flex;
+  gap: 20rpx;
+}
+
+.nutrition-item {
+  font-size: 20rpx;
+  color: #999;
+}
+
+/* 空菜单状态 */
+.empty-menu {
+  text-align: center;
+  padding: 100rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.5;
+}
+
+.empty-text {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 15rpx;
+}
+
+.empty-desc {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 权限不足提示 */
+.permission-denied {
+  text-align: center;
+  padding: 100rpx 40rpx;
+}
+
+.permission-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.5;
+}
+
+.permission-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 15rpx;
+}
+
+.permission-desc {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 30rpx;
+}
+
+.permission-info {
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.info-item {
+  font-size: 24rpx;
+  color: #333;
+}
+
+/* 报餐表单 */
+.order-header {
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.order-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.order-subtitle {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.order-form {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.form-section {
+  margin-bottom: 40rpx;
+}
+
+.section-label {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.form-label {
+  width: 160rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.form-picker {
+  flex: 1;
+}
+
+.picker-value {
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.form-textarea {
+  width: 100%;
+  height: 120rpx;
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 10rpx;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 部门成员 */
+.member-list {
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+
+.member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid #e9ecef;
+}
+
+.select-all {
+  display: flex;
+  align-items: center;
+}
+
+.select-checkbox {
+  margin-right: 10rpx;
+}
+
+.select-text {
+  font-size: 26rpx;
+  color: #333;
+}
+
+.member-count {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.member-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.member-item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  transition: all 0.3s ease;
+}
+
+.member-item:active {
+  transform: scale(0.98);
+}
+
+.member-checkbox {
+  margin-right: 20rpx;
+}
+
+.member-avatar-wrapper {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  overflow: hidden;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.member-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.member-info {
+  flex: 1;
+}
+
+.member-name {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 5rpx;
+}
+
+.member-role {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.member-status {
+  padding: 6rpx 12rpx;
+  border-radius: 16rpx;
+  font-size: 20rpx;
+}
+
+.status-available {
+  background: #d4edda;
+  color: #155724;
+}
+
+/* 表单操作 */
+.form-actions {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+  padding-top: 20rpx;
+}
+
+.btn-secondary,
+.btn-primary {
+  flex: 1;
+  height: 88rpx;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-secondary {
+  background: #f8f9fa;
+  color: #666;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: #fff;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  color: #999;
+}
+
+.btn-secondary:active,
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* 报餐记录 */
+.record-header {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+}
+
+.record-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.record-filters {
+  display: flex;
+  gap: 20rpx;
+}
+
+.filter-picker {
+  flex: 1;
+}
+
+.filter-value {
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 24rpx;
+  color: #333;
+  text-align: center;
+}
+
+/* 记录列表 */
+.record-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.record-item {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.record-item:active {
+  transform: scale(0.98);
+}
+
+.record-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.record-date {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.record-status {
+  padding: 8rpx 16rpx;
+  border-radius: 20rpx;
+  font-size: 22rpx;
+}
+
+.record-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15rpx;
+}
+
+.record-info {
+  display: flex;
+  gap: 20rpx;
+}
+
+.record-type {
+  font-size: 24rpx;
+  color: #333;
+}
+
+.record-count {
+  font-size: 24rpx;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.record-members {
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 15rpx;
+}
+
+.members-text {
+  font-size: 24rpx;
+  color: #333;
+  line-height: 1.4;
+}
+
+.record-time {
+  display: flex;
+  gap: 10rpx;
+}
+
+.time-label {
+  font-size: 22rpx;
+  color: #666;
+}
+
+.time-value {
+  font-size: 22rpx;
+  color: #333;
+}
+
+/* 空记录状态 */
+.empty-record {
+  text-align: center;
+  padding: 100rpx 40rpx;
+}
+
+/* 加载更多 */
+.load-more {
+  text-align: center;
+  padding: 40rpx;
+}
+
+.load-more-btn {
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 16rpx;
+  padding: 20rpx 40rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 加载状态 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 40rpx;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #f3f3f3;
+  border-top: 4rpx solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20rpx;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 搜索和筛选样式 */
+.member-filters {
+  margin-bottom: 20rpx;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 20rpx;
+}
+
+.search-input {
+  width: 100%;
+  padding: 20rpx 60rpx 20rpx 20rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 28rpx;
+  background: #fafafa;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: #2196f3;
+  background: #fff;
+}
+
+.search-icon {
+  position: absolute;
+  right: 20rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 32rpx;
+  color: #999;
+}
+
+.role-filters {
+  display: flex;
+  gap: 20rpx;
+  flex-wrap: wrap;
+}
+
+.role-filter-item {
+  padding: 12rpx 24rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.role-filter-item.active {
+  background: #2196f3;
+  color: #fff;
+  border-color: #2196f3;
+}
+
+.role-filter-item:active {
+  transform: scale(0.95);
+}
+
+/* 快速选择样式 */
+.quick-select {
+  margin-bottom: 20rpx;
+  padding: 20rpx;
+  background: #f0f7ff;
+  border-radius: 8rpx;
+  border: 2rpx solid #e3f2fd;
+}
+
+.quick-select-label {
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.quick-select-actions {
+  display: flex;
+  gap: 15rpx;
+  flex-wrap: wrap;
+}
+
+.quick-action {
+  padding: 8rpx 16rpx;
+  background: #2196f3;
+  color: #fff;
+  font-size: 22rpx;
+  border-radius: 6rpx;
+  transition: all 0.3s ease;
+}
+
+.quick-action:active {
+  background: #1976d2;
+  transform: scale(0.95);
+}
+
+/* 成员列表容器 */
+.member-items-container {
+  border: 2rpx solid #f0f0f0;
+  border-radius: 8rpx;
+  background: #fafafa;
+}
+
+.member-items-scroll {
+  width: 100%;
+}
+
+.member-item.selected {
+  background: #e3f2fd !important;
+  border-color: #2196f3 !important;
+  box-shadow: 0 4rpx 8rpx rgba(33,150,243,0.15);
+}
+
+.member-item:active {
+  transform: scale(0.98);
+}
+
+.member-dept {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 加载更多 */
+.load-more {
+  padding: 30rpx;
+  text-align: center;
+}
+
+.load-more-text {
+  font-size: 26rpx;
+  color: #999;
+}
+
+/* 无匹配结果 */
+.no-members {
+  padding: 60rpx 20rpx;
+  text-align: center;
+}
+
+.no-members-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.no-members-text {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+.no-members-desc {
+  font-size: 24rpx;
+  color: #999;
+  display: block;
+}
+
+/* 选中成员预览 */
+.selected-members-preview {
+  margin-top: 20rpx;
+  border: 2rpx solid #e3f2fd;
+  border-radius: 8rpx;
+  background: #f8fdff;
+}
+
+.preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx;
+  border-bottom: 2rpx solid #e3f2fd;
+}
+
+.preview-title {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.preview-toggle {
+  font-size: 24rpx;
+  color: #2196f3;
+  padding: 8rpx 16rpx;
+  border: 2rpx solid #2196f3;
+  border-radius: 6rpx;
+  transition: all 0.3s ease;
+}
+
+.preview-toggle:active {
+  background: #2196f3;
+  color: #fff;
+}
+
+.preview-content {
+  padding: 20rpx;
+}
+
+.selected-member-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.selected-member-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 8rpx 12rpx;
+  background: #2196f3;
+  color: #fff;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.selected-member-tag:active {
+  background: #1976d2;
+  transform: scale(0.95);
+}
+
+.tag-name {
+  font-size: 22rpx;
+}
+
+.tag-close {
+  font-size: 28rpx;
+  font-weight: bold;
+  margin-left: 4rpx;
+}
+
+/* 价格过滤 */
+.price-filter {
+  margin-top: 20rpx;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  border: 2rpx solid #e9ecef;
+}
+
+.price-label {
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 15rpx;
+  display: block;
+}
+
+.price-range {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.price-input {
+  flex: 1;
+  padding: 10rpx 20rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #333;
+  background: #fff;
+}
+
+.price-separator {
+  font-size: 26rpx;
+  color: #666;
+}
+
+/* 重置按钮 */
+.reset-filters {
+  margin-top: 20rpx;
+  padding: 15rpx 30rpx;
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.reset-filters:active {
+  background: #e9ecef;
+  transform: scale(0.98);
+}
+
+.reset-text {
+  font-size: 26rpx;
+  font-weight: 500;
+}
+
+/* 过滤工具栏 */
+.filter-toolbar {
+  margin-bottom: 30rpx;
+  padding: 20rpx;
+  background: #f8f9fa;
+  border-radius: 16rpx;
+  border: 2rpx solid #e9ecef;
+}
+
+/* 搜索容器 */
+.search-container {
+  position: relative;
+  margin-bottom: 20rpx;
+}
+
+.search-input {
+  width: 100%;
+  padding: 20rpx 60rpx 20rpx 20rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  border-color: #667eea;
+  outline: none;
+}
+
+.search-icon {
+  position: absolute;
+  right: 20rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 分类过滤 */
+.category-filters {
+  display: flex;
+  gap: 15rpx;
+  margin-bottom: 20rpx;
+  flex-wrap: wrap;
+}
+
+.category-filter-item {
+  padding: 12rpx 24rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #666;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.category-filter-item.active {
+  background: #667eea;
+  color: #fff;
+  border-color: #667eea;
+}
+
+.category-filter-item:active {
+  transform: scale(0.95);
+}
+
+/* 标签过滤 */
+.tag-filters {
+  display: flex;
+  gap: 15rpx;
+  margin-bottom: 20rpx;
+  flex-wrap: wrap;
+}
+
+.tag-filter-item {
+  padding: 10rpx 20rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  color: #666;
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
+.tag-filter-item.active {
+  background: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.tag-filter-item:active {
+  transform: scale(0.95);
+}
+</style>

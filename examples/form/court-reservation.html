@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>球馆预约 - 智慧物业管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-container {
+            flex-shrink: 0;
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .header-content h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header-content p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tab-nav {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .tab-item.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background: white;
+            min-height: 500px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .court-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .court-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .court-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+        }
+
+        .court-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .court-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .court-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-occupied {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-maintenance {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .court-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-item span:first-child {
+            font-size: 14px;
+            color: #666;
+            min-width: 60px;
+        }
+
+        .info-item span:last-child {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .time-slot {
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .time-slot:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .time-slot.available {
+            border-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .time-slot.booked {
+            border-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+            cursor: not-allowed;
+        }
+
+        .time-slot.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .reservation-form {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .form-section {
+            margin-bottom: 20px;
+        }
+
+        .form-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .equipment-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .equipment-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .equipment-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .equipment-item.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .equipment-checkbox {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #ddd;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .equipment-item.selected .equipment-checkbox {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .equipment-item.selected .equipment-checkbox::after {
+            content: '✓';
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .my-reservations {
+            display: grid;
+            gap: 15px;
+        }
+
+        .reservation-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .reservation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .reservation-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .reservation-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .reservation-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .detail-item span:first-child {
+            font-size: 14px;
+            color: #666;
+            min-width: 60px;
+        }
+
+        .detail-item span:last-child {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .reservation-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .cancel-btn:hover {
+            background: #c82333;
+        }
+
+        .modify-btn {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .modify-btn:hover {
+            background: #e0a800;
+        }
+
+        .submit-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .design-notes {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 812px;
+            overflow-y: auto;
+        }
+
+        .design-notes h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .design-section {
+            margin-bottom: 25px;
+        }
+
+        .design-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .design-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .design-section ul {
+            color: #666;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .design-section li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .phone-container {
+                width: 100%;
+                max-width: 375px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 手机原型 -->
+        <div class="phone-container">
+            <div class="phone-screen">
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <span>智慧物业</span>
+                    <span>100%</span>
+                </div>
+
+                <!-- 头部 -->
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="icon.png" alt="湖北省地质局Logo" class="logo-icon">
+                    </div>
+                    <div class="back-btn" onclick="goBack()">←</div>
+                    <div class="header-content">
+                        <h1>球馆预约</h1>
+                        <p>预约运动场地</p>
+                    </div>
+                </div>
+
+                <!-- 标签导航 -->
+                <div class="tab-nav">
+                    <div class="tab-item active" onclick="switchTab('courts')">场地信息</div>
+                    <div class="tab-item" onclick="switchTab('reserve')">在线预约</div>
+                    <div class="tab-item" onclick="switchTab('my')">我的预约</div>
+                </div>
+
+                <!-- 场地信息内容 -->
+                <div class="tab-content active" id="courts-tab">
+                    <div class="court-list">
+                        <div class="court-item">
+                            <div class="court-header">
+                                <div class="court-name">🏸 羽毛球馆A</div>
+                                <div class="court-status status-available">可预约</div>
+                            </div>
+                            <div class="court-info">
+                                <div class="info-item">
+                                    <span>类型：</span>
+                                    <span>羽毛球</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>容量：</span>
+                                    <span>4-6人</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>设施：</span>
+                                    <span>空调、照明</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>价格：</span>
+                                    <span>50元/小时</span>
+                                </div>
+                            </div>
+                            <div class="time-slots">
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">9:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">10:00</div>
+                                <div class="time-slot booked">11:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">12:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">13:00</div>
+                                <div class="time-slot booked">14:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">15:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">16:00</div>
+                            </div>
+                        </div>
+
+                        <div class="court-item">
+                            <div class="court-header">
+                                <div class="court-name">🏓 乒乓球室</div>
+                                <div class="court-status status-available">可预约</div>
+                            </div>
+                            <div class="court-info">
+                                <div class="info-item">
+                                    <span>类型：</span>
+                                    <span>乒乓球</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>容量：</span>
+                                    <span>2-4人</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>设施：</span>
+                                    <span>空调、照明</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>价格：</span>
+                                    <span>30元/小时</span>
+                                </div>
+                            </div>
+                            <div class="time-slots">
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">9:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">10:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">11:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">12:00</div>
+                                <div class="time-slot booked">13:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">14:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">15:00</div>
+                                <div class="time-slot available" onclick="selectTimeSlot(this)">16:00</div>
+                            </div>
+                        </div>
+
+                        <div class="court-item">
+                            <div class="court-header">
+                                <div class="court-name">🏀 篮球场</div>
+                                <div class="court-status status-maintenance">维护中</div>
+                            </div>
+                            <div class="court-info">
+                                <div class="info-item">
+                                    <span>类型：</span>
+                                    <span>篮球</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>容量：</span>
+                                    <span>10-20人</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>设施：</span>
+                                    <span>照明、记分牌</span>
+                                </div>
+                                <div class="info-item">
+                                    <span>价格：</span>
+                                    <span>80元/小时</span>
+                                </div>
+                            </div>
+                            <div class="time-slots">
+                                <div class="time-slot booked">9:00</div>
+                                <div class="time-slot booked">10:00</div>
+                                <div class="time-slot booked">11:00</div>
+                                <div class="time-slot booked">12:00</div>
+                                <div class="time-slot booked">13:00</div>
+                                <div class="time-slot booked">14:00</div>
+                                <div class="time-slot booked">15:00</div>
+                                <div class="time-slot booked">16:00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 在线预约内容 -->
+                <div class="tab-content" id="reserve-tab">
+                    <div class="reservation-form">
+                        <div class="form-section">
+                            <h3>🏸 选择场地</h3>
+                            <div class="form-group">
+                                <label>场地类型</label>
+                                <select id="court-type">
+                                    <option value="">请选择场地类型</option>
+                                    <option value="badminton">羽毛球馆</option>
+                                    <option value="pingpong">乒乓球室</option>
+                                    <option value="basketball">篮球场</option>
+                                </select>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>预约日期</label>
+                                    <input type="date" id="reserve-date">
+                                </div>
+                                <div class="form-group">
+                                    <label>开始时间</label>
+                                    <select id="start-time">
+                                        <option value="">请选择时间</option>
+                                        <option value="9:00">9:00</option>
+                                        <option value="10:00">10:00</option>
+                                        <option value="11:00">11:00</option>
+                                        <option value="12:00">12:00</option>
+                                        <option value="13:00">13:00</option>
+                                        <option value="14:00">14:00</option>
+                                        <option value="15:00">15:00</option>
+                                        <option value="16:00">16:00</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>使用时长</label>
+                                    <select id="duration">
+                                        <option value="1">1小时</option>
+                                        <option value="2">2小时</option>
+                                        <option value="3">3小时</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>预约人数</label>
+                                    <input type="number" id="people-count" min="1" max="20" placeholder="请输入人数">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>🎯 预约信息</h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>联系人</label>
+                                    <input type="text" id="contact-name" placeholder="请输入姓名">
+                                </div>
+                                <div class="form-group">
+                                    <label>联系电话</label>
+                                    <input type="tel" id="contact-phone" placeholder="请输入电话">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>所属部门</label>
+                                <select id="contact-dept">
+                                    <option value="">请选择部门</option>
+                                    <option value="geology">地质勘查部</option>
+                                    <option value="lab">实验室</option>
+                                    <option value="admin">行政部</option>
+                                    <option value="other">其他部门</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>预约用途</label>
+                                <select id="purpose">
+                                    <option value="">请选择用途</option>
+                                    <option value="training">训练</option>
+                                    <option value="competition">比赛</option>
+                                    <option value="recreation">娱乐</option>
+                                    <option value="team-building">团建</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3>🔧 设备需求</h3>
+                            <div class="equipment-list">
+                                <div class="equipment-item" onclick="toggleEquipment(this)">
+                                    <div class="equipment-checkbox"></div>
+                                    <span>球拍</span>
+                                </div>
+                                <div class="equipment-item" onclick="toggleEquipment(this)">
+                                    <div class="equipment-checkbox"></div>
+                                    <span>球网</span>
+                                </div>
+                                <div class="equipment-item" onclick="toggleEquipment(this)">
+                                    <div class="equipment-checkbox"></div>
+                                    <span>记分牌</span>
+                                </div>
+                                <div class="equipment-item" onclick="toggleEquipment(this)">
+                                    <div class="equipment-checkbox"></div>
+                                    <span>饮用水</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 我的预约内容 -->
+                <div class="tab-content" id="my-tab">
+                    <div class="my-reservations">
+                        <div class="reservation-item">
+                            <div class="reservation-header">
+                                <div class="reservation-title">🏸 羽毛球馆A</div>
+                                <div class="reservation-status status-confirmed">已确认</div>
+                            </div>
+                            <div class="reservation-details">
+                                <div class="detail-item">
+                                    <span>日期：</span>
+                                    <span>2024-01-16</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>时间：</span>
+                                    <span>14:00-16:00</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>人数：</span>
+                                    <span>4人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>费用：</span>
+                                    <span>100元</span>
+                                </div>
+                            </div>
+                            <div class="reservation-actions">
+                                <button class="action-btn modify-btn" onclick="modifyReservation(this)">修改</button>
+                                <button class="action-btn cancel-btn" onclick="cancelReservation(this)">取消</button>
+                            </div>
+                        </div>
+
+                        <div class="reservation-item">
+                            <div class="reservation-header">
+                                <div class="reservation-title">🏓 乒乓球室</div>
+                                <div class="reservation-status status-pending">待确认</div>
+                            </div>
+                            <div class="reservation-details">
+                                <div class="detail-item">
+                                    <span>日期：</span>
+                                    <span>2024-01-18</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>时间：</span>
+                                    <span>15:00-16:00</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>人数：</span>
+                                    <span>2人</span>
+                                </div>
+                                <div class="detail-item">
+                                    <span>费用：</span>
+                                    <span>30元</span>
+                                </div>
+                            </div>
+                            <div class="reservation-actions">
+                                <button class="action-btn modify-btn" onclick="modifyReservation(this)">修改</button>
+                                <button class="action-btn cancel-btn" onclick="cancelReservation(this)">取消</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="submit-section">
+                    <button class="submit-btn" onclick="submitReservation()">提交预约申请</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计说明 -->
+        <div class="design-notes">
+            <h2>球馆预约页面设计说明</h2>
+            
+            <div class="design-section">
+                <h3>🎨 设计理念</h3>
+                <p>设计直观易用的球馆预约界面，支持多种运动场地类型。界面清晰明了，操作流程简单，确保用户能够快速完成场地预约。</p>
+            </div>
+
+            <div class="design-section">
+                <h3>🎯 功能布局</h3>
+                <ul>
+                    <li><strong>场地信息</strong>：显示各球馆的详细信息和可用时间段</li>
+                    <li><strong>在线预约</strong>：完整的预约表单，包含场地、时间、人员等信息</li>
+                    <li><strong>我的预约</strong>：查看和管理已提交的预约记录</li>
+                    <li><strong>实时状态</strong>：显示场地的实时可用状态</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>📱 交互设计</h3>
+                <ul>
+                    <li><strong>标签切换</strong>：三个主要功能模块的标签式导航</li>
+                    <li><strong>时间段选择</strong>：直观的时间段选择界面</li>
+                    <li><strong>设备选择</strong>：可选的设备需求选择</li>
+                    <li><strong>预约管理</strong>：支持修改和取消预约</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🎨 视觉设计</h3>
+                <ul>
+                    <li><strong>状态标识</strong>：不同状态使用不同颜色区分</li>
+                    <li><strong>图标系统</strong>：为不同运动类型使用相应图标</li>
+                    <li><strong>卡片布局</strong>：使用卡片分组，信息层次清晰</li>
+                    <li><strong>色彩搭配</strong>：主色调与系统整体保持一致</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🔧 技术特点</h3>
+                <ul>
+                    <li><strong>响应式布局</strong>：适配不同屏幕尺寸</li>
+                    <li><strong>动态内容</strong>：根据选择动态显示相关内容</li>
+                    <li><strong>状态管理</strong>：管理预约流程的各个状态</li>
+                    <li><strong>交互优化</strong>：平滑的动画效果和反馈</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>💡 业务逻辑</h3>
+                <ul>
+                    <li><strong>场地管理</strong>：支持多种运动场地类型</li>
+                    <li><strong>时间管理</strong>：灵活的时间段选择</li>
+                    <li><strong>预约流程</strong>：完整的预约申请流程</li>
+                    <li><strong>状态跟踪</strong>：预约状态的实时更新</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedTimeSlots = new Set();
+        let selectedEquipment = new Set();
+
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签的激活状态
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 显示选中的标签内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 激活选中的标签
+            event.target.classList.add('active');
+        }
+
+        function selectTimeSlot(element) {
+            if (element.classList.contains('booked')) {
+                return; // 已预约的时间段不可选择
+            }
+            
+            if (element.classList.contains('selected')) {
+                element.classList.remove('selected');
+                selectedTimeSlots.delete(element.textContent);
+            } else {
+                element.classList.add('selected');
+                selectedTimeSlots.add(element.textContent);
+            }
+        }
+
+        function toggleEquipment(element) {
+            element.classList.toggle('selected');
+            const equipmentName = element.querySelector('span').textContent;
+            
+            if (element.classList.contains('selected')) {
+                selectedEquipment.add(equipmentName);
+            } else {
+                selectedEquipment.delete(equipmentName);
+            }
+        }
+
+        function submitReservation() {
+            // 基本验证
+            const courtType = document.getElementById('court-type').value;
+            const reserveDate = document.getElementById('reserve-date').value;
+            const startTime = document.getElementById('start-time').value;
+            const duration = document.getElementById('duration').value;
+            const peopleCount = document.getElementById('people-count').value;
+            const contactName = document.getElementById('contact-name').value;
+            const contactPhone = document.getElementById('contact-phone').value;
+            
+            if (!courtType || !reserveDate || !startTime || !peopleCount || !contactName || !contactPhone) {
+                alert('请填写完整的预约信息');
+                return;
+            }
+            
+            alert('预约申请提交成功！');
+        }
+
+        function modifyReservation(element) {
+            alert('修改预约功能');
+        }
+
+        function cancelReservation(element) {
+            if (confirm('确定要取消这个预约吗？')) {
+                element.closest('.reservation-item').remove();
+                alert('预约已取消');
+            }
+        }
+
+        function goBack() {
+            alert('返回主页面');
+        }
+
+        // 设置默认日期为明天
+        document.addEventListener('DOMContentLoaded', function() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dateString = tomorrow.toISOString().split('T')[0];
+            document.getElementById('reserve-date').value = dateString;
+        });
+
+        // 添加触摸反馈
+        document.querySelectorAll('.time-slot, .equipment-item, .action-btn').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            item.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

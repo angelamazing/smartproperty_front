@@ -1,0 +1,11 @@
+{
+  "name": "submitSpecialReservation",
+  "version": "1.0.0",
+  "description": "特殊预约报餐云函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  },
+  "author": "智慧物业管理系统",
+  "license": "MIT"
+}

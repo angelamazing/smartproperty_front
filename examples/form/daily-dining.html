@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日常报餐 - 智慧物业管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-container {
+            flex-shrink: 0;
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .header-content h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header-content p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .tab-nav {
+            background: white;
+            display: flex;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tab-item {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .tab-item.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .menu-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .menu-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dish-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .dish-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .dish-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .dish-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .dish-info {
+            flex: 1;
+        }
+
+        .dish-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .dish-desc {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .nutrition-info {
+            font-size: 12px;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .dept-section {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .dept-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .dept-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .dept-count {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        .member-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .member-item:hover {
+            background: #f8f9fa;
+        }
+
+        .member-item.selected {
+            background: #f0f4ff;
+            border: 2px solid #667eea;
+        }
+
+        .member-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .member-info {
+            flex: 1;
+        }
+
+        .member-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .member-dept {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox.checked {
+            background: #667eea;
+            border-color: #667eea;
+            color: white;
+        }
+
+        .submit-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .design-notes {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 812px;
+            overflow-y: auto;
+        }
+
+        .design-notes h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .design-section {
+            margin-bottom: 25px;
+        }
+
+        .design-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .design-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .design-section ul {
+            color: #666;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .design-section li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .phone-container {
+                width: 100%;
+                max-width: 375px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 手机原型 -->
+        <div class="phone-container">
+            <div class="phone-screen">
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <span>智慧物业</span>
+                    <span>100%</span>
+                </div>
+
+                <!-- 头部 -->
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="icon.png" alt="湖北省地质局Logo" class="logo-icon">
+                    </div>
+                    <div class="back-btn" onclick="goBack()">←</div>
+                    <div class="header-content">
+                        <h1>日常报餐</h1>
+                        <p>为部门成员报名用餐</p>
+                    </div>
+                </div>
+
+                <!-- 标签导航 -->
+                <div class="tab-nav">
+                    <div class="tab-item active" onclick="switchTab('menu')">今日菜单</div>
+                    <div class="tab-item" onclick="switchTab('dept')">部门报名</div>
+                </div>
+
+                <!-- 菜单内容 -->
+                <div class="tab-content active" id="menu-tab">
+                    <div class="menu-section">
+                        <h3>🍽️ 早餐 (7:00-8:30)</h3>
+                        <div class="dish-list">
+                            <div class="dish-item">
+                                <div class="dish-icon">🥐</div>
+                                <div class="dish-info">
+                                    <div class="dish-name">营养早餐套餐</div>
+                                    <div class="dish-desc">包含包子、豆浆、鸡蛋等</div>
+                                </div>
+                                <div class="nutrition-info">热量: 320kcal</div>
+                            </div>
+                            <div class="dish-item">
+                                <div class="dish-icon">🥣</div>
+                                <div class="dish-info">
+                                    <div class="dish-name">粥品系列</div>
+                                    <div class="dish-desc">皮蛋瘦肉粥、白粥等</div>
+                                </div>
+                                <div class="nutrition-info">热量: 180kcal</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section">
+                        <h3>🍜 午餐 (12:00-13:30)</h3>
+                        <div class="dish-list">
+                            <div class="dish-item">
+                                <div class="dish-icon">🍚</div>
+                                <div class="dish-info">
+                                    <div class="dish-name">工作餐套餐</div>
+                                    <div class="dish-desc">米饭、荤菜、素菜、汤品</div>
+                                </div>
+                                <div class="nutrition-info">热量: 650kcal</div>
+                            </div>
+                            <div class="dish-item">
+                                <div class="dish-icon">🥗</div>
+                                <div class="dish-info">
+                                    <div class="dish-name">健康轻食</div>
+                                    <div class="dish-desc">沙拉、鸡胸肉、粗粮</div>
+                                </div>
+                                <div class="nutrition-info">热量: 450kcal</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="menu-section">
+                        <h3>🍽️ 晚餐 (18:00-19:30)</h3>
+                        <div class="dish-list">
+                            <div class="dish-item">
+                                <div class="dish-icon">🍲</div>
+                                <div class="dish-info">
+                                    <div class="dish-name">晚餐套餐</div>
+                                    <div class="dish-desc">米饭、荤菜、素菜、汤品</div>
+                                </div>
+                                <div class="nutrition-info">热量: 580kcal</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 部门报名内容 -->
+                <div class="tab-content" id="dept-tab">
+                    <div class="dept-section">
+                        <div class="dept-header">
+                            <div class="dept-title">🏢 地质勘查部</div>
+                            <div class="dept-count">已选: <span id="selected-count">0</span></div>
+                        </div>
+                        <div class="member-list">
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">张</div>
+                                <div class="member-info">
+                                    <div class="member-name">张工程师</div>
+                                    <div class="member-dept">高级工程师</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">李</div>
+                                <div class="member-info">
+                                    <div class="member-name">李技术员</div>
+                                    <div class="member-dept">技术员</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">王</div>
+                                <div class="member-info">
+                                    <div class="member-name">王助理</div>
+                                    <div class="member-dept">助理工程师</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">陈</div>
+                                <div class="member-info">
+                                    <div class="member-name">陈实习生</div>
+                                    <div class="member-dept">实习生</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="dept-section">
+                        <div class="dept-header">
+                            <div class="dept-title">🔬 实验室</div>
+                            <div class="dept-count">已选: <span id="lab-count">0</span></div>
+                        </div>
+                        <div class="member-list">
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">刘</div>
+                                <div class="member-info">
+                                    <div class="member-name">刘主任</div>
+                                    <div class="member-dept">实验室主任</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                            <div class="member-item" onclick="toggleMember(this)">
+                                <div class="member-avatar">赵</div>
+                                <div class="member-info">
+                                    <div class="member-name">赵研究员</div>
+                                    <div class="member-dept">研究员</div>
+                                </div>
+                                <div class="checkbox"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提交按钮 -->
+                <div class="submit-section">
+                    <button class="submit-btn" onclick="submitRegistration()">提交报名</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计说明 -->
+        <div class="design-notes">
+            <h2>日常报餐页面设计说明</h2>
+            
+            <div class="design-section">
+                <h3>🎨 设计理念</h3>
+                <p>采用卡片式设计，突出信息的层次感和可读性。菜单展示采用只读模式，符合食堂统一配餐的业务逻辑。部门报名功能简洁明了，便于管理员快速操作。</p>
+            </div>
+
+            <div class="design-section">
+                <h3>🎯 功能布局</h3>
+                <ul>
+                    <li><strong>标签导航</strong>：今日菜单和部门报名两个主要功能模块</li>
+                    <li><strong>菜单展示</strong>：按用餐时间分类，显示餐品信息和营养数据</li>
+                    <li><strong>部门报名</strong>：按部门分组，支持多选人员</li>
+                    <li><strong>固定提交</strong>：底部固定提交按钮，操作便捷</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>📱 交互设计</h3>
+                <ul>
+                    <li><strong>标签切换</strong>：点击标签切换不同功能模块</li>
+                    <li><strong>人员选择</strong>：点击人员卡片进行选择/取消选择</li>
+                    <li><strong>视觉反馈</strong>：选中状态有明显的视觉区分</li>
+                    <li><strong>实时统计</strong>：显示已选择的人员数量</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🎨 视觉设计</h3>
+                <ul>
+                    <li><strong>卡片布局</strong>：使用圆角卡片营造现代感</li>
+                    <li><strong>图标系统</strong>：使用emoji图标增加亲和力</li>
+                    <li><strong>色彩搭配</strong>：主色调与系统整体保持一致</li>
+                    <li><strong>层次分明</strong>：通过阴影和间距营造视觉层次</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🔧 技术特点</h3>
+                <ul>
+                    <li><strong>响应式布局</strong>：适配不同屏幕尺寸</li>
+                    <li><strong>CSS Grid</strong>：灵活的网格布局系统</li>
+                    <li><strong>动画效果</strong>：平滑的过渡动画提升体验</li>
+                    <li><strong>固定定位</strong>：提交按钮固定在底部，便于操作</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>💡 业务逻辑</h3>
+                <ul>
+                    <li><strong>菜单只读</strong>：用户只能查看，不能选择餐品</li>
+                    <li><strong>批量报名</strong>：支持为多个部门成员同时报名</li>
+                    <li><strong>实时统计</strong>：动态显示选择状态和数量</li>
+                    <li><strong>分类管理</strong>：按部门分组管理，便于操作</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedMembers = new Set();
+
+        function switchTab(tabName) {
+            // 隐藏所有标签内容
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 移除所有标签的active状态
+            document.querySelectorAll('.tab-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 显示选中的标签内容
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // 设置选中标签的active状态
+            event.target.classList.add('active');
+        }
+
+        function toggleMember(memberItem) {
+            const checkbox = memberItem.querySelector('.checkbox');
+            const isSelected = memberItem.classList.contains('selected');
+            
+            if (isSelected) {
+                memberItem.classList.remove('selected');
+                checkbox.classList.remove('checked');
+                selectedMembers.delete(memberItem);
+            } else {
+                memberItem.classList.add('selected');
+                checkbox.classList.add('checked');
+                selectedMembers.add(memberItem);
+            }
+            
+            updateCounts();
+        }
+
+        function updateCounts() {
+            const deptItems = document.querySelectorAll('#dept-tab .member-item');
+            const labItems = document.querySelectorAll('#dept-tab .dept-section:last-child .member-item');
+            
+            let deptCount = 0;
+            let labCount = 0;
+            
+            deptItems.forEach(item => {
+                if (item.classList.contains('selected')) {
+                    if (labItems.includes(item)) {
+                        labCount++;
+                    } else {
+                        deptCount++;
+                    }
+                }
+            });
+            
+            document.getElementById('selected-count').textContent = deptCount;
+            document.getElementById('lab-count').textContent = labCount;
+        }
+
+        function submitRegistration() {
+            if (selectedMembers.size === 0) {
+                alert('请至少选择一名人员');
+                return;
+            }
+            
+            alert(`成功为 ${selectedMembers.size} 名人员报名用餐！`);
+        }
+
+        function goBack() {
+            alert('返回主页面');
+        }
+
+        // 添加触摸反馈
+        document.querySelectorAll('.member-item, .dish-item').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            item.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

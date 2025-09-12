@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用餐验证 - 智慧物业管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-container {
+            flex-shrink: 0;
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .back-btn {
+            width: 32px;
+            height: 32px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .header-content h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .header-content p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .user-info {
+            background: white;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .user-info h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .user-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-detail span:first-child {
+            font-size: 14px;
+            color: #666;
+            min-width: 60px;
+        }
+
+        .user-detail span:last-child {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .verification-methods {
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .method-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .method-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .method-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .method-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .method-item.active {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .method-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .method-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .verification-content {
+            display: none;
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .verification-content.active {
+            display: block;
+        }
+
+        .verification-area {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .verification-area h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .verification-area p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .verification-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .verification-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .verification-result {
+            display: none;
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .verification-result.active {
+            display: block;
+        }
+
+        .result-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .result-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .result-icon.success {
+            background: #28a745;
+            color: white;
+        }
+
+        .result-icon.error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .result-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .result-details {
+            margin-bottom: 20px;
+        }
+
+        .result-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .result-detail:last-child {
+            border-bottom: none;
+        }
+
+        .result-detail span:first-child {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .result-detail span:last-child {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .approve-btn {
+            background: #28a745;
+            color: white;
+        }
+
+        .approve-btn:hover {
+            background: #218838;
+        }
+
+        .reject-btn {
+            background: #dc3545;
+            color: white;
+        }
+
+        .reject-btn:hover {
+            background: #c82333;
+        }
+
+        .stats-section {
+            padding: 0 20px;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .design-notes {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 812px;
+            overflow-y: auto;
+        }
+
+        .design-notes h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .design-section {
+            margin-bottom: 25px;
+        }
+
+        .design-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .design-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .design-section ul {
+            color: #666;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .design-section li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .phone-container {
+                width: 100%;
+                max-width: 375px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 手机原型 -->
+        <div class="phone-container">
+            <div class="phone-screen">
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <span>智慧物业</span>
+                    <span>100%</span>
+                </div>
+
+                <!-- 头部 -->
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="icon.png" alt="湖北省地质局Logo" class="logo-icon">
+                    </div>
+                    <div class="back-btn" onclick="goBack()">←</div>
+                    <div class="header-content">
+                        <h1>用餐验证</h1>
+                        <p>验证用餐资格</p>
+                    </div>
+                </div>
+
+                <!-- 用户信息 -->
+                <div class="user-info">
+                    <h3>👤 用户信息</h3>
+                    <div class="user-details">
+                        <div class="user-detail">
+                            <span>姓名：</span>
+                            <span>张三</span>
+                        </div>
+                        <div class="user-detail">
+                            <span>部门：</span>
+                            <span>地质勘查部</span>
+                        </div>
+                        <div class="user-detail">
+                            <span>工号：</span>
+                            <span>GZ001</span>
+                        </div>
+                        <div class="user-detail">
+                            <span>状态：</span>
+                            <span>正常</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 验证方式选择 -->
+                <div class="verification-methods">
+                    <div class="method-title">选择验证方式</div>
+                    <div class="method-grid">
+                        <div class="method-item" onclick="selectMethod('qr')">
+                            <div class="method-icon">📱</div>
+                            <div class="method-text">二维码验证</div>
+                        </div>
+                        <div class="method-item" onclick="selectMethod('card')">
+                            <div class="method-icon">💳</div>
+                            <div class="method-text">刷卡验证</div>
+                        </div>
+                        <div class="method-item" onclick="selectMethod('direct')">
+                            <div class="method-icon">✅</div>
+                            <div class="method-text">直接确认</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 二维码验证内容 -->
+                <div class="verification-content active" id="qr-content">
+                    <div class="verification-area">
+                        <h3>📱 二维码验证</h3>
+                        <p>请将用户的二维码对准扫描器，或点击下方按钮模拟扫描过程</p>
+                        <button class="verification-btn" onclick="simulateVerification('qr')">扫描二维码</button>
+                    </div>
+                </div>
+
+                <!-- 刷卡验证内容 -->
+                <div class="verification-content" id="card-content">
+                    <div class="verification-area">
+                        <h3>💳 刷卡验证</h3>
+                        <p>请将用户的工卡放置在读卡器上，或点击下方按钮模拟刷卡过程</p>
+                        <button class="verification-btn" onclick="simulateVerification('card')">刷卡验证</button>
+                    </div>
+                </div>
+
+                <!-- 直接确认内容 -->
+                <div class="verification-content" id="direct-content">
+                    <div class="verification-area">
+                        <h3>✅ 直接确认</h3>
+                        <p>验证人员可直接确认用户身份，适用于特殊情况下的快速验证</p>
+                        <button class="verification-btn" onclick="simulateVerification('direct')">直接确认</button>
+                    </div>
+                </div>
+
+                <!-- 验证结果 -->
+                <div class="verification-result" id="verification-result">
+                    <div class="result-card">
+                        <div class="result-header">
+                            <div class="result-icon success">✓</div>
+                            <div class="result-title">验证通过</div>
+                        </div>
+                        <div class="result-details">
+                            <div class="result-detail">
+                                <span>验证方式：</span>
+                                <span id="result-method">二维码验证</span>
+                            </div>
+                            <div class="result-detail">
+                                <span>验证时间：</span>
+                                <span id="result-time">2024-01-15 12:30:25</span>
+                            </div>
+                            <div class="result-detail">
+                                <span>用餐资格：</span>
+                                <span>有效</span>
+                            </div>
+                            <div class="result-detail">
+                                <span>备注：</span>
+                                <span>用户已报名今日午餐</span>
+                            </div>
+                        </div>
+                        <div class="result-actions">
+                            <button class="action-btn approve-btn" onclick="approveDining()">通过用餐</button>
+                            <button class="action-btn reject-btn" onclick="rejectDining()">拒绝用餐</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 今日统计 -->
+                <div class="stats-section">
+                    <div class="stats-title">📊 今日统计</div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number">156</div>
+                            <div class="stat-label">总验证</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">142</div>
+                            <div class="stat-label">通过</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number">14</div>
+                            <div class="stat-label">拒绝</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计说明 -->
+        <div class="design-notes">
+            <h2>用餐验证页面设计说明</h2>
+            
+            <div class="design-section">
+                <h3>🎨 设计理念</h3>
+                <p>设计简洁高效的用餐验证界面，支持三种不同的验证方式。界面清晰明了，操作流程简单，确保验证人员能够快速完成验证工作。</p>
+            </div>
+
+            <div class="design-section">
+                <h3>🎯 功能布局</h3>
+                <ul>
+                    <li><strong>用户信息</strong>：显示待验证用户的基本信息</li>
+                    <li><strong>验证方式</strong>：三种验证方式的选择界面</li>
+                    <li><strong>验证内容</strong>：根据选择方式显示相应的验证界面</li>
+                    <li><strong>验证结果</strong>：显示验证结果和后续操作</li>
+                    <li><strong>统计信息</strong>：显示今日验证统计数据</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>📱 交互设计</h3>
+                <ul>
+                    <li><strong>方式选择</strong>：点击验证方式图标切换内容</li>
+                    <li><strong>内容切换</strong>：根据选择动态显示验证内容</li>
+                    <li><strong>结果反馈</strong>：验证完成后显示详细结果</li>
+                    <li><strong>操作按钮</strong>：提供通过/拒绝等后续操作</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🎨 视觉设计</h3>
+                <ul>
+                    <li><strong>图标系统</strong>：为每种验证方式使用相应图标</li>
+                    <li><strong>色彩搭配</strong>：主色调与系统整体保持一致</li>
+                    <li><strong>卡片布局</strong>：使用卡片分组，信息层次清晰</li>
+                    <li><strong>状态反馈</strong>：成功/失败状态有明显的视觉区分</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🔧 技术特点</h3>
+                <ul>
+                    <li><strong>动态内容</strong>：根据用户选择动态切换验证内容</li>
+                    <li><strong>状态管理</strong>：管理验证流程的各个状态</li>
+                    <li><strong>响应式布局</strong>：适配不同屏幕尺寸</li>
+                    <li><strong>交互优化</strong>：平滑的动画效果和反馈</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>💡 业务逻辑</h3>
+                <ul>
+                    <li><strong>三种验证方案</strong>：二维码、刷卡、直接确认</li>
+                    <li><strong>权限控制</strong>：不同验证方式对应不同权限</li>
+                    <li><strong>结果处理</strong>：验证通过后可进行后续操作</li>
+                    <li><strong>统计功能</strong>：实时统计验证数据</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMethod = 'qr';
+
+        function selectMethod(method) {
+            // 移除所有验证方式的激活状态
+            document.querySelectorAll('.method-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // 隐藏所有验证内容
+            document.querySelectorAll('.verification-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 隐藏验证结果
+            document.getElementById('verification-result').classList.remove('active');
+            
+            // 激活选中的验证方式
+            event.target.closest('.method-item').classList.add('active');
+            
+            // 显示对应的验证内容
+            document.getElementById(method + '-content').classList.add('active');
+            
+            currentMethod = method;
+        }
+
+        function simulateVerification(method) {
+            // 隐藏验证内容
+            document.querySelectorAll('.verification-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 显示验证结果
+            const resultElement = document.getElementById('verification-result');
+            resultElement.classList.add('active');
+            
+            // 更新结果信息
+            const methodNames = {
+                'qr': '二维码验证',
+                'card': '刷卡验证',
+                'direct': '直接确认'
+            };
+            
+            document.getElementById('result-method').textContent = methodNames[method];
+            document.getElementById('result-time').textContent = new Date().toLocaleString('zh-CN');
+            
+            // 滚动到结果区域
+            resultElement.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function approveDining() {
+            alert('用餐通过！用户已获得用餐资格。');
+        }
+
+        function rejectDining() {
+            alert('用餐被拒绝！请说明拒绝原因。');
+        }
+
+        function goBack() {
+            alert('返回主页面');
+        }
+
+        // 添加触摸反馈
+        document.querySelectorAll('.method-item, .verification-btn, .action-btn').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            item.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>

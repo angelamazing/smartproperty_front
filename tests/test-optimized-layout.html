@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>优化后的密码输入布局</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+        .test-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .form-item {
+            margin-bottom: 24px;
+        }
+        .input-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .input-label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        .input-field-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .input-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            min-height: 44px;
+        }
+        .input-field.focused {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+        .input-field.error {
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 4px rgba(229, 62, 62, 0.1);
+        }
+        .input-text {
+            flex: 1;
+            padding: 12px 12px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #2d3748;
+            background: transparent;
+            line-height: 1.4;
+        }
+        .input-text::placeholder {
+            color: #a0aec0;
+            font-size: 15px;
+        }
+        .visibility-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            z-index: 2;
+        }
+        .visibility-toggle:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+        .visibility-toggle:active {
+            transform: translateY(-50%) scale(0.95);
+        }
+        .toggle-icon {
+            font-size: 16px;
+            color: #718096;
+            transition: color 0.2s ease;
+        }
+        .visibility-toggle:hover .toggle-icon {
+            color: #667eea;
+        }
+        .input-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            min-height: 20px;
+        }
+        .error-message {
+            color: #e53e3e;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .success-message {
+            color: #38a169;
+            font-size: 14px;
+            font-weight: 500;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+        .char-counter {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 500;
+            text-align: right;
+            min-width: 50px;
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .password-strength {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .strength-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        .strength-bar {
+            display: flex;
+            gap: 2px;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .strength-segment {
+            flex: 1;
+            height: 100%;
+            border-radius: 2px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: left;
+        }
+        .strength-segment.empty {
+            background: #e2e8f0;
+        }
+        .strength-segment.weak {
+            background: linear-gradient(90deg, #fc8181, #f56565);
+        }
+        .strength-segment.fair {
+            background: linear-gradient(90deg, #f6ad55, #ed8936);
+        }
+        .strength-segment.good {
+            background: linear-gradient(90deg, #63b3ed, #4299e1);
+        }
+        .strength-segment.strong {
+            background: linear-gradient(90deg, #68d391, #48bb78);
+        }
+        .strength-text {
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            min-width: 50px;
+        }
+        .password-tips {
+            background: #f0f8ff;
+            border: 2px solid #bee3f8;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .tips-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #3182ce;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .tip-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+        .tip-dot {
+            font-size: 12px;
+            color: #3182ce;
+        }
+        .tip-text {
+            font-size: 12px;
+            color: #4a5568;
+            line-height: 1.4;
+        }
+        .test-result {
+            margin-top: 20px;
+            padding: 16px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            border: 2px solid #bee3f8;
+        }
+        .test-result h3 {
+            margin: 0 0 12px 0;
+            color: #3182ce;
+            font-size: 16px;
+        }
+        .test-result p {
+            margin: 6px 0;
+            color: #4a5568;
+            font-size: 14px;
+        }
+        .highlight {
+            background: #667eea;
+            color: white;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h2 style="text-align: center; color: #2d3748; margin-bottom: 20px;">🔐 优化后的密码输入布局</h2>
+        <p style="text-align: center; color: #718096; margin-bottom: 20px;">紧凑布局，更好的空间利用</p>
+        
+        <div class="form-item">
+            <div class="input-container">
+                <label class="input-label">当前密码</label>
+                <div class="input-field-wrapper">
+                    <div class="input-field" :class="{ 'focused': focusedField === 'current', 'error': false }">
+                        <input 
+                            class="input-text"
+                            :value="currentPassword"
+                            @input="handleCurrentPasswordInput"
+                            @focus="onPasswordFocus('current')"
+                            @blur="onPasswordBlur('current')"
+                            placeholder="请输入当前密码"
+                            type="password"
+                            maxlength="20"
+                        />
+                        <button class="visibility-toggle" @click="togglePasswordVisibility('current')">
+                            <span class="toggle-icon">🙈</span>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span class="char-counter">{{ currentPassword.length }}/20</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-item">
+            <div class="input-container">
+                <label class="input-label">新密码</label>
+                <div class="input-field-wrapper">
+                    <div class="input-field" :class="{ 'focused': focusedField === 'new', 'error': false }">
+                        <input 
+                            class="input-text"
+                            :value="newPassword"
+                            @input="handleNewPasswordInput"
+                            @focus="onPasswordFocus('new')"
+                            @blur="onPasswordBlur('new')"
+                            placeholder="请输入新密码"
+                            type="password"
+                            maxlength="20"
+                        />
+                        <button class="visibility-toggle" @click="togglePasswordVisibility('new')">
+                            <span class="toggle-icon">🙈</span>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span class="char-counter">{{ newPassword.length }}/20</span>
+                    </div>
+                    <div v-if="newPassword" class="password-strength">
+                        <span class="strength-label">密码强度：</span>
+                        <div class="strength-bar">
+                            <div class="strength-segment" :class="getPasswordStrengthClass(0)"></div>
+                            <div class="strength-segment" :class="getPasswordStrengthClass(1)"></div>
+                            <div class="strength-segment" :class="getPasswordStrengthClass(2)"></div>
+                            <div class="strength-segment" :class="getPasswordStrengthClass(3)"></div>
+                        </div>
+                        <span class="strength-text">{{ getPasswordStrengthText() }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-item">
+            <div class="input-container">
+                <label class="input-label">确认密码</label>
+                <div class="input-field-wrapper">
+                    <div class="input-field" :class="{ 'focused': focusedField === 'confirm', 'error': false }">
+                        <input 
+                            class="input-text"
+                            :value="confirmPassword"
+                            @input="handleConfirmPasswordInput"
+                            @focus="onPasswordFocus('confirm')"
+                            @blur="onPasswordBlur('confirm')"
+                            placeholder="请再次输入新密码"
+                            type="password"
+                            maxlength="20"
+                        />
+                        <button class="visibility-toggle" @click="togglePasswordVisibility('confirm')">
+                            <span class="toggle-icon">🙈</span>
+                        </button>
+                    </div>
+                    <div class="input-footer">
+                        <span v-if="confirmPassword && newPassword === confirmPassword" class="success-message">✓ 密码匹配</span>
+                        <span class="char-counter">{{ confirmPassword.length }}/20</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="password-tips">
+            <span class="tips-title">密码要求：</span>
+            <div class="tip-item">
+                <span class="tip-dot">•</span>
+                <span class="tip-text">密码长度至少6位</span>
+            </div>
+            <div class="tip-item">
+                <span class="tip-dot">•</span>
+                <span class="tip-text">建议包含字母、数字和特殊字符</span>
+            </div>
+            <div class="tip-item">
+                <span class="tip-dot">•</span>
+                <span class="tip-text">不要使用过于简单的密码</span>
+            </div>
+        </div>
+        
+        <div class="test-result" v-if="currentPassword || newPassword || confirmPassword">
+            <h3>🎯 优化效果</h3>
+            <p><strong>当前密码:</strong> <span class="highlight">{{ currentPassword || '未输入' }}</span></p>
+            <p><strong>新密码:</strong> <span class="highlight">{{ newPassword || '未输入' }}</span></p>
+            <p><strong>确认密码:</strong> <span class="highlight">{{ confirmPassword || '未输入' }}</span></p>
+            <p><strong>密码匹配:</strong> <span class="highlight">{{ newPassword === confirmPassword ? '✓ 匹配' : '✗ 不匹配' }}</span></p>
+            <p><strong>密码强度:</strong> <span class="highlight">{{ getPasswordStrengthText() }}</span></p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue;
+        
+        createApp({
+            data() {
+                return {
+                    focusedField: null,
+                    currentPassword: '',
+                    newPassword: '',
+                    confirmPassword: '',
+                    passwordVisibility: {
+                        current: false,
+                        new: false,
+                        confirm: false
+                    },
+                    passwordStrength: 0
+                }
+            },
+            methods: {
+                handleCurrentPasswordInput(e) {
+                    this.currentPassword = e.target.value;
+                    console.log('当前密码输入:', e.target.value);
+                },
+                
+                handleNewPasswordInput(e) {
+                    this.newPassword = e.target.value;
+                    this.passwordStrength = this.calculatePasswordStrength(this.newPassword);
+                    console.log('新密码输入:', e.target.value);
+                },
+                
+                handleConfirmPasswordInput(e) {
+                    this.confirmPassword = e.target.value;
+                    console.log('确认密码输入:', e.target.value);
+                },
+                
+                onPasswordFocus(type) {
+                    this.focusedField = type;
+                },
+                
+                onPasswordBlur(type) {
+                    this.focusedField = null;
+                },
+                
+                togglePasswordVisibility(type) {
+                    this.passwordVisibility[type] = !this.passwordVisibility[type];
+                },
+                
+                calculatePasswordStrength(password) {
+                    if (!password) return 0;
+                    
+                    let strength = 0;
+                    
+                    // 长度检查
+                    if (password.length >= 6) strength++;
+                    if (password.length >= 10) strength++;
+                    
+                    // 字符类型检查
+                    if (/[a-z]/.test(password)) strength++;
+                    if (/[A-Z]/.test(password)) strength++;
+                    if (/[0-9]/.test(password)) strength++;
+                    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+                    
+                    // 返回0-4的强度值
+                    return Math.min(strength, 4);
+                },
+                
+                getPasswordStrengthClass(index) {
+                    const strength = this.passwordStrength;
+                    if (index < strength) {
+                        if (strength <= 1) return 'weak';
+                        if (strength <= 2) return 'fair';
+                        if (strength <= 3) return 'good';
+                        return 'strong';
+                    }
+                    return 'empty';
+                },
+                
+                getPasswordStrengthText() {
+                    const strength = this.passwordStrength;
+                    if (strength === 0) return '请输入密码';
+                    if (strength === 1) return '弱';
+                    if (strength === 2) return '一般';
+                    if (strength === 3) return '良好';
+                    return '强';
+                }
+            }
+        }).mount('body');
+    </script>
+</body>
+</html>

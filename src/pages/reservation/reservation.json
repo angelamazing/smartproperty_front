@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "场地预约",
+  "navigationBarBackgroundColor": "#667eea",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f8f9fa",
+  "enablePullDownRefresh": true,
+  "onReachBottomDistance": 50
+}

@@ -1,0 +1,341 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#667eea",
+        "backgroundTextStyle": "light",
+        "enablePullDownRefresh": false,
+        "disableScroll": false
+      }
+    },
+    {
+      "path": "pages/test-avatar/test-avatar",
+      "style": {
+        "navigationBarTitleText": "头像测试",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/test-ios-date-fix",
+      "style": {
+        "navigationBarTitleText": "iOS日期格式测试",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "智慧物业",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dining",
+      "style": {
+        "navigationBarTitleText": "日常报餐",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/register",
+      "style": {
+        "navigationBarTitleText": "报餐页面",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/reservation/reservation",
+      "style": {
+        "navigationBarTitleText": "球馆预约",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/profile/profile",
+      "style": {
+        "navigationBarTitleText": "个人中心",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/special-reservation/special-reservation",
+      "style": {
+        "navigationBarTitleText": "特殊预约报餐",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/verification/verification",
+      "style": {
+        "navigationBarTitleText": "用餐验证",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/index",
+      "style": {
+        "navigationBarTitleText": "系统管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/menu",
+      "style": {
+        "navigationBarTitleText": "菜单管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/menu-history",
+      "style": {
+        "navigationBarTitleText": "菜单历史",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/template-edit",
+      "style": {
+        "navigationBarTitleText": "模板编辑",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/menu-edit",
+      "style": {
+        "navigationBarTitleText": "菜单编辑",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/users",
+      "style": {
+        "navigationBarTitleText": "人员管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/dishes",
+      "style": {
+        "navigationBarTitleText": "菜品管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/venues",
+      "style": {
+        "navigationBarTitleText": "球馆管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/notices",
+      "style": {
+        "navigationBarTitleText": "公告管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/settings",
+      "style": {
+        "navigationBarTitleText": "系统设置",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/personal-info/personal-info",
+      "style": {
+        "navigationBarTitleText": "个人信息",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/change-password/change-password",
+      "style": {
+        "navigationBarTitleText": "修改密码",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/feedback/feedback",
+      "style": {
+        "navigationBarTitleText": "意见反馈",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/about/about",
+      "style": {
+        "navigationBarTitleText": "关于我们",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/help-center/help-center",
+      "style": {
+        "navigationBarTitleText": "帮助中心",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/notification-settings/notification-settings",
+      "style": {
+        "navigationBarTitleText": "通知设置",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dept-order",
+      "style": {
+        "navigationBarTitleText": "部门报餐",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dept-overview",
+      "style": {
+        "navigationBarTitleText": "部门报餐概览",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dept-stats",
+      "style": {
+        "navigationBarTitleText": "部门报餐统计",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dining-status",
+      "style": {
+        "navigationBarTitleText": "就餐状态",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dining-confirmation-history",
+      "style": {
+        "navigationBarTitleText": "就餐确认历史",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/qr-scan",
+      "style": {
+        "navigationBarTitleText": "扫码就餐",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/qr-scan-history",
+      "style": {
+        "navigationBarTitleText": "扫码历史记录",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/admin/dining-confirmation",
+      "style": {
+        "navigationBarTitleText": "确认就餐管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/admin/qr-management",
+      "style": {
+        "navigationBarTitleText": "二维码管理",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
+      "path": "pages/dining/dining-confirm",
+      "style": {
+        "navigationBarTitleText": "用餐确认",
+        "navigationBarBackgroundColor": "#07c160",
+        "navigationBarTextStyle": "white",
+        "backgroundColor": "#f5f5f5",
+        "enablePullDownRefresh": false,
+        "disableScroll": false
+      }
+    },
+    {
+      "path": "pages/admin/dept-edit",
+      "style": {
+        "navigationBarTitleText": "部门编辑",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#667eea",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "black",
+    "height": "120rpx",
+    "fontSize": "28rpx",
+    "iconWidth": "60rpx",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/dining/dining",
+        "text": "报餐"
+      },
+      {
+        "pagePath": "pages/reservation/reservation",
+        "text": "预约"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "智慧物业管理系统",
+    "navigationBarBackgroundColor": "#667eea",
+    "backgroundColor": "#f8f9fa"
+  }
+}

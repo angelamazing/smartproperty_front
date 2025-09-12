@@ -1,0 +1,8 @@
+{
+  "navigationBarTitleText": "特殊预约报餐",
+  "navigationBarBackgroundColor": "#667eea",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f8f9fa",
+  "backgroundTextStyle": "light",
+  "enablePullDownRefresh": false
+}

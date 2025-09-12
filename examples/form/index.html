@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>湖北省地质局第三地质大队 智慧物业管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .phone-container {
+            flex-shrink: 0;
+            width: 375px;
+            height: 812px;
+            background: #000;
+            border-radius: 40px;
+            padding: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: #f8f9fa;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .status-bar {
+            height: 44px;
+            background: #000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: white;
+            text-align: center;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            margin-right: 15px;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .logo-text {
+            text-align: left;
+        }
+
+        .logo-text h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #fff;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            opacity: 0.9;
+            color: #fff;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .nav-item {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .nav-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .nav-item:active {
+            transform: scale(0.98);
+        }
+
+        .nav-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            margin: 0 auto 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .nav-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .quick-actions {
+            padding: 0 20px 20px;
+        }
+
+        .quick-actions h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .action-list {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+
+        .action-item {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            min-width: 120px;
+            text-align: center;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .action-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .action-icon {
+            width: 32px;
+            height: 32px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 16px;
+        }
+
+        .action-text {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .design-notes {
+            flex: 1;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 812px;
+            overflow-y: auto;
+        }
+
+        .design-notes h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .design-section {
+            margin-bottom: 25px;
+        }
+
+        .design-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .design-section p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+
+        .design-section ul {
+            color: #666;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+
+        .design-section li {
+            margin-bottom: 5px;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .color-item {
+            text-align: center;
+        }
+
+        .color-box {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .color-name {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .primary { background: #667eea; }
+        .secondary { background: #764ba2; }
+        .accent { background: #f093fb; }
+        .neutral { background: #f8f9fa; }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .phone-container {
+                width: 100%;
+                max-width: 375px;
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 手机原型 -->
+        <div class="phone-container">
+            <div class="phone-screen">
+                <!-- 状态栏 -->
+                <div class="status-bar">
+                    <span>9:41</span>
+                    <span>智慧物业</span>
+                    <span>100%</span>
+                </div>
+
+                <!-- 头部 -->
+                <div class="header">
+                    <div class="logo-container">
+                        <img src="icon.png" alt="湖北省地质局Logo" class="logo-icon">
+                        <div class="logo-text">
+                            <h2>湖北地质</h2>
+                            <p>HUBEI GEOLOGY</p>
+                        </div>
+                    </div>
+                    <h1>智慧物业管理系统</h1>
+                    <p>湖北省地质局第三地质大队</p>
+                </div>
+
+                <!-- 主导航 -->
+                <div class="nav-grid">
+                    <div class="nav-item" onclick="showMessage('日常报餐功能')">
+                        <div class="nav-icon">🍽️</div>
+                        <div class="nav-text">日常报餐</div>
+                    </div>
+                    <div class="nav-item" onclick="showMessage('特殊预约报餐功能')">
+                        <div class="nav-icon">📅</div>
+                        <div class="nav-text">特殊预约</div>
+                    </div>
+                    <div class="nav-item" onclick="showMessage('球馆预约功能')">
+                        <div class="nav-icon">🏸</div>
+                        <div class="nav-text">球馆预约</div>
+                    </div>
+                    <div class="nav-item" onclick="showMessage('用餐验证功能')">
+                        <div class="nav-icon">✅</div>
+                        <div class="nav-text">用餐验证</div>
+                    </div>
+                </div>
+
+                <!-- 快捷操作 -->
+                <div class="quick-actions">
+                    <h3>快捷操作</h3>
+                    <div class="action-list">
+                        <div class="action-item" onclick="showMessage('查看今日菜单')">
+                            <div class="action-icon">📋</div>
+                            <div class="action-text">今日菜单</div>
+                        </div>
+                        <div class="action-item" onclick="showMessage('我的预约')">
+                            <div class="action-icon">📝</div>
+                            <div class="action-text">我的预约</div>
+                        </div>
+                        <div class="action-item" onclick="showMessage('用餐记录')">
+                            <div class="action-icon">📊</div>
+                            <div class="action-text">用餐记录</div>
+                        </div>
+                        <div class="action-item" onclick="showMessage('个人中心')">
+                            <div class="action-icon">👤</div>
+                            <div class="action-text">个人中心</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 设计说明 -->
+        <div class="design-notes">
+            <h2>主页面设计说明</h2>
+            
+            <div class="design-section">
+                <h3>🎨 设计理念</h3>
+                <p>采用现代简约的设计风格，突出"智慧物业"的科技感和专业性。使用渐变色彩营造温馨的用餐氛围，同时保持界面的清晰易用。</p>
+            </div>
+
+            <div class="design-section">
+                <h3>🎯 功能布局</h3>
+                <ul>
+                    <li><strong>头部区域</strong>：展示系统名称和单位信息，使用渐变背景突出重要性</li>
+                    <li><strong>主导航</strong>：2x2网格布局，四大核心功能一目了然</li>
+                    <li><strong>快捷操作</strong>：横向滚动列表，提供常用功能的快速访问</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🎨 色彩搭配</h3>
+                <div class="color-palette">
+                    <div class="color-item">
+                        <div class="color-box primary"></div>
+                        <div class="color-name">主色调</div>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-box secondary"></div>
+                        <div class="color-name">辅助色</div>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-box accent"></div>
+                        <div class="color-name">强调色</div>
+                    </div>
+                    <div class="color-item">
+                        <div class="color-box neutral"></div>
+                        <div class="color-name">中性色</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="design-section">
+                <h3>📱 交互设计</h3>
+                <ul>
+                    <li><strong>点击反馈</strong>：所有可点击元素都有hover和active状态</li>
+                    <li><strong>视觉层次</strong>：使用阴影和圆角营造立体感</li>
+                    <li><strong>响应式设计</strong>：适配不同屏幕尺寸</li>
+                </ul>
+            </div>
+
+            <div class="design-section">
+                <h3>🔧 技术特点</h3>
+                <ul>
+                    <li><strong>CSS Grid</strong>：使用现代CSS布局技术</li>
+                    <li><strong>渐变背景</strong>：营造视觉层次和现代感</li>
+                    <li><strong>动画效果</strong>：平滑的过渡动画提升用户体验</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(message) {
+            alert(message);
+        }
+
+        // 添加触摸反馈
+        document.querySelectorAll('.nav-item, .action-item').forEach(item => {
+            item.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.95)';
+            });
+            
+            item.addEventListener('touchend', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
