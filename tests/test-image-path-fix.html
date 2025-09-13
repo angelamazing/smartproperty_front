@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图片路径错误修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .test-button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1976d2;
+        }
+        .test-result {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196f3;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .success {
+            border-left-color: #4caf50;
+            background: #e8f5e8;
+        }
+        .qr-content {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .qr-display {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f9f9f9;
+            margin: 10px 0;
+        }
+        .error-info {
+            background: #ffebee;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .fix-info {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .path-test {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>图片路径错误修复测试</h1>
+    <p>测试微信小程序中图片路径错误的修复方案</p>
+    
+    <div class="test-section">
+        <div class="test-title">1. 错误分析</div>
+        <button class="test-button" onclick="testErrorAnalysis()">分析错误原因</button>
+        <div id="error-analysis-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">2. 图片路径验证测试</div>
+        <button class="test-button" onclick="testImagePathValidation()">测试路径验证</button>
+        <div id="path-validation-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">3. 修复方案测试</div>
+        <button class="test-button" onclick="testFixSolution()">测试修复方案</button>
+        <div id="fix-solution-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">4. 二维码显示测试</div>
+        <button class="test-button" onclick="testQRCodeDisplay()">测试二维码显示</button>
+        <div id="qr-display-result" class="test-result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 模拟图片路径验证函数
+        function isValidImagePath(path) {
+            if (!path) return false
+            
+            // 检查是否为有效的图片路径
+            const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp']
+            const isDataURL = path.startsWith('data:image/')
+            const isHttpURL = path.startsWith('http://') || path.startsWith('https://')
+            const isLocalPath = path.startsWith('/') && imageExtensions.some(ext => path.toLowerCase().includes(ext))
+            
+            return isDataURL || isHttpURL || isLocalPath
+        }
+
+        // 测试错误分析
+        function testErrorAnalysis() {
+            const resultDiv = document.getElementById('error-analysis-result')
+            resultDiv.style.display = 'block'
+            
+            resultDiv.className = 'test-result error'
+            resultDiv.innerHTML = `
+                <h4>❌ 错误分析</h4>
+                <div class="error-info">
+                    <p><strong>错误信息:</strong></p>
+                    <p>Failed to load local image resource /pages/admin/DINING_CONFIRM_FIXED_001_1757761230694</p>
+                    <p>the server responded with a status of 500 (HTTP/1.1 500 Internal Server Error)</p>
+                </div>
+                <div class="fix-info">
+                    <p><strong>错误原因:</strong></p>
+                    <p>• 微信小程序将二维码内容字符串当作了图片路径</p>
+                    <p>• 尝试加载不存在的图片资源</p>
+                    <p>• 服务器返回500错误</p>
+                    <p>• 需要区分图片路径和内容字符串</p>
+                </div>
+            `
+        }
+
+        // 测试图片路径验证
+        function testImagePathValidation() {
+            const resultDiv = document.getElementById('path-validation-result')
+            resultDiv.style.display = 'block'
+            
+            const testPaths = [
+                'DINING_CONFIRM_FIXED_001_1757761230694', // 二维码内容（无效）
+                'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', // Data URL（有效）
+                'https://example.com/image.png', // HTTP URL（有效）
+                '/static/image.png', // 本地路径（有效）
+                'invalid_path', // 无效路径
+                null, // 空值
+                '' // 空字符串
+            ]
+            
+            let testResults = testPaths.map(path => {
+                const isValid = isValidImagePath(path)
+                const type = path ? (path.startsWith('data:') ? 'Data URL' : 
+                                   path.startsWith('http') ? 'HTTP URL' : 
+                                   path.startsWith('/') ? 'Local Path' : 'Content String') : 'Empty'
+                return {
+                    path: path || 'null',
+                    isValid: isValid,
+                    type: type
+                }
+            })
+            
+            resultDiv.className = 'test-result success'
+            resultDiv.innerHTML = `
+                <h4>✅ 图片路径验证测试完成</h4>
+                <div class="path-test">
+                    <p><strong>测试结果:</strong></p>
+                    ${testResults.map(result => `
+                        <p>• <strong>${result.path}</strong> (${result.type}) → ${result.isValid ? '✅ 有效' : '❌ 无效'}</p>
+                    `).join('')}
+                </div>
+                <div class="fix-info">
+                    <p><strong>验证逻辑:</strong></p>
+                    <p>• Data URL: 以 "data:image/" 开头</p>
+                    <p>• HTTP URL: 以 "http://" 或 "https://" 开头</p>
+                    <p>• 本地路径: 以 "/" 开头且包含图片扩展名</p>
+                    <p>• 其他: 视为内容字符串，不是图片路径</p>
+                </div>
+            `
+        }
+
+        // 测试修复方案
+        function testFixSolution() {
+            const resultDiv = document.getElementById('fix-solution-result')
+            resultDiv.style.display = 'block'
+            
+            // 模拟修复前后的数据
+            const beforeFix = {
+                qrCodeImage: 'DINING_CONFIRM_FIXED_001_1757761230694', // 错误：内容字符串
+                content: 'DINING_CONFIRM_FIXED_001_1757761230694',
+                platform: 'wechat_miniprogram'
+            }
+            
+            const afterFix = {
+                qrCodeImage: null, // 修复：不设置图片路径
+                content: 'DINING_CONFIRM_FIXED_001_1757761230694',
+                platform: 'wechat_miniprogram',
+                fallback: true
+            }
+            
+            resultDiv.className = 'test-result success'
+            resultDiv.innerHTML = `
+                <h4>✅ 修复方案测试完成</h4>
+                <div class="error-info">
+                    <p><strong>修复前（错误）:</strong></p>
+                    <div class="qr-content">qrCodeImage: "${beforeFix.qrCodeImage}"</div>
+                    <p>❌ 微信小程序尝试加载此路径作为图片</p>
+                </div>
+                <div class="fix-info">
+                    <p><strong>修复后（正确）:</strong></p>
+                    <div class="qr-content">qrCodeImage: ${afterFix.qrCodeImage}</div>
+                    <p>✅ 不设置图片路径，避免加载错误</p>
+                </div>
+                <div class="path-test">
+                    <p><strong>修复方案:</strong></p>
+                    <p>• 在微信小程序环境中，设置 qrCodeImage 为 null</p>
+                    <p>• 使用 fallback 模式显示内容</p>
+                    <p>• 添加图片路径验证函数</p>
+                    <p>• 根据路径有效性选择显示方式</p>
+                </div>
+            `
+        }
+
+        // 测试二维码显示
+        function testQRCodeDisplay() {
+            const resultDiv = document.getElementById('qr-display-result')
+            resultDiv.style.display = 'block'
+            
+            const qrContent = 'DINING_CONFIRM_FIXED_001_' + Date.now()
+            
+            resultDiv.className = 'test-result success'
+            resultDiv.innerHTML = `
+                <h4>✅ 二维码显示测试完成</h4>
+                <div class="qr-display">
+                    <h5>修复后的二维码显示效果</h5>
+                    <div style="
+                        width: 200px; 
+                        height: 200px; 
+                        border: 2px solid #e0e0e0; 
+                        border-radius: 8px; 
+                        background: #f5f5f5; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: center; 
+                        justify-content: center; 
+                        padding: 20px; 
+                        text-align: center; 
+                        margin: 0 auto;
+                    ">
+                        <div style="
+                            font-size: 14px; 
+                            font-weight: bold; 
+                            color: #333; 
+                            word-break: break-all; 
+                            margin-bottom: 10px; 
+                            line-height: 1.4;
+                        ">${qrContent}</div>
+                        <div style="
+                            font-size: 12px; 
+                            color: #666;
+                        ">二维码内容（微信扫码时使用）</div>
+                    </div>
+                </div>
+                <div class="fix-info">
+                    <p><strong>显示逻辑:</strong></p>
+                    <p>• 检查 qrCodeImage 是否为有效图片路径</p>
+                    <p>• 如果是有效路径，显示图片</p>
+                    <p>• 如果不是有效路径，显示内容文字</p>
+                    <p>• 避免微信小程序尝试加载无效路径</p>
+                </div>
+            `
+        }
+    </script>
+</body>
+</html>

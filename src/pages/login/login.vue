@@ -77,55 +77,14 @@
         <text class="login-tip">输入手机号和密码登录</text>
       </view>
 
-      <!-- 其他登录方式 -->
-      <view class="other-login">
-        <text class="other-title">其他登录方式</text>
-        <view class="other-buttons">
-          <button class="other-btn" @click="handleGuestLogin">
-            <text class="other-icon">👤</text>
-            <text class="other-text">游客访问</text>
-          </button>
-          <button class="other-btn" @click="handleTestLogin">
-            <text class="other-icon">🧪</text>
-            <text class="other-text">普通用户测试</text>
-          </button>
-          <button class="other-btn" @click="handleTestLoginAs管理员">
-            <text class="other-icon">👨‍💼</text>
-            <text class="other-text">部门管理员测试</text>
-          </button>
-          <button class="other-btn" @click="handleTestLoginAsSys管理员">
-            <text class="other-icon">👑</text>
-            <text class="other-text">系统管理员测试</text>
-          </button>
-          <button class="other-btn" @click="handleHelp">
-            <text class="other-icon">❓</text>
-            <text class="other-text">帮助中心</text>
-          </button>
-        </view>
+      <!-- 帮助中心 -->
+      <view class="help-section">
+        <button class="help-btn" @click="handleHelp">
+          <text class="help-icon">❓</text>
+          <text class="help-text">帮助中心</text>
+        </button>
       </view>
 
-      <!-- 部门管理员选择器 -->
-      <view class="dept-admin-section" v-if="showDeptSelector">
-        <view class="dept-header">
-          <text class="section-title">选择部门管理员</text>
-          <button class="close-dept-selector" @click="closeDeptSelector">
-            <text class="close-icon">✕</text>
-          </button>
-        </view>
-        <text class="section-desc">选择要测试的部门管理员账号</text>
-        <view class="dept-grid">
-          <button 
-            v-for="dept in departments" 
-            :key="dept.code"
-            class="dept-btn"
-            @click="handleSpecificDeptLogin(dept)"
-          >
-            <text class="dept-icon">🏢</text>
-            <text class="dept-name">{{ dept.name }}</text>
-            <text class="dept-phone">{{ dept.phone }}</text>
-          </button>
-        </view>
-      </view>
     </view>
 
     <!-- 底部信息 -->
@@ -177,20 +136,6 @@ export default {
       current用户: null,
       showLoginForm: true,
       
-      // 部门选择器
-      showDeptSelector: false,
-      departments: [
-        { code: 'GEO_DATA', name: '地质数据中心', phone: '13800001001' },
-        { code: 'GEO_ENG', name: '地质工程中心', phone: '13800001002' },
-        { code: 'ECO_ENV', name: '生态环境中心', phone: '13800001003' },
-        { code: 'GEO_ENV', name: '地质环境中心', phone: '13800001004' },
-        { code: 'GEO_SURVEY', name: '地质调查中心', phone: '13800001005' },
-        { code: 'HUANGMEI', name: '黄梅分站', phone: '13800001006' },
-        { code: 'MINING_CO', name: '矿业有限责任公司', phone: '13800001007' },
-        { code: 'PROPERTY', name: '物业中心', phone: '13800001008' },
-        { code: 'ADMIN', name: '机关科室', phone: '13800001009' },
-        { code: 'TECH', name: 'Technology 部门', phone: '13800000001' }
-      ]
     }
   },
   
@@ -418,265 +363,7 @@ export default {
       }
     },
     
-    /**
-     * 游客访问
-     */
-    handleGuestLogin() {
-      uni.showModal({
-        title: '游客访问',
-        content: '游客模式功能受限，建议登录后使用完整功能',
-        confirmText: '继续访问',
-        cancelText: '去登录',
-        success: (res) => {
-          if (res.confirm) {
-            // 设置游客模式标识
-            uni.setStorageSync('isGuest', true)
-            
-            // 游客模式也跳转到首页，但功能受限
-            this.navigateToHome()
-          }
-        }
-      })
-    },
-    
-    /**
-     * 普通用户测试登录
-     */
-    handleTestLogin() {
-      uni.showModal({
-        title: '普通用户测试登录',
-        content: '将使用普通用户测试账号直接登录系统，用于功能测试',
-        confirmText: '普通用户测试登录',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            this.performTestLogin()
-          }
-        }
-      })
-    },
 
-    /**
-     * 部门管理员测试登录
-     */
-    handleTestLoginAs管理员() {
-      // 显示部门选择器
-      this.showDeptSelector = true
-    },
-
-    /**
-     * 系统管理员测试登录
-     */
-    handleTestLoginAsSys管理员() {
-      uni.showModal({
-        title: '系统管理员测试登录',
-        content: '将使用系统管理员测试账号登录系统，可以测试所有管理功能',
-        confirmText: '系统管理员测试登录',
-        cancelText: '取消',
-        success: (res) => {
-          if (res.confirm) {
-            this.performTestLoginAsSysAdmin()
-          }
-        }
-      })
-    },
-
-    async performTestLoginAs管理员() {
-      this.showLoading = true
-      this.loadingText = '正在测试登录（部门管理员）...'
-
-      try {
-        // 调用REST API部门管理员测试登录，使用文档中指定的手机号
-        const result = await api.auth.testLoginDeptAdmin('13800001001')
-
-        if (result && result.success) {
-          // 保存测试登录信息
-          this.saveLoginInfo(result.data)
-
-          // 显示测试登录成功提示
-          uni.showToast({
-            title: '部门管理员测试登录成功',
-            icon: 'success',
-            duration: 3000
-          })
-
-          // 更新页面状态，显示登录成功信息
-          this.showLoginSuccessInfo(result.data.userInfo)
-
-        } else {
-          throw new Error(result.message || '部门管理员测试登录失败')
-        }
-
-      } catch (error) {
-        console.error('部门管理员测试登录失败:', error)
-        uni.showModal({
-          title: '登录失败',
-          content: error.message || '部门管理员测试登录失败，请重试',
-          show取消: false
-        })
-      } finally {
-        this.showLoading = false
-      }
-    },
-
-    /**
-     * 系统管理员测试登录
-     */
-    async performTestLoginAsSysAdmin() {
-      this.showLoading = true
-      this.loadingText = '正在测试登录（系统管理员）...'
-
-      try {
-        // 调用系统管理员测试登录API
-        const result = await api.auth.testLoginSysAdmin()
-
-        if (result && result.success) {
-          // 保存测试登录信息
-          this.saveLoginInfo(result.data)
-
-          // 显示测试登录成功提示
-          uni.showToast({
-            title: '系统管理员测试登录成功',
-            icon: 'success',
-            duration: 3000
-          })
-
-          // 更新页面状态，显示登录成功信息
-          this.showLoginSuccessInfo(result.data.userInfo)
-
-        } else {
-          throw new Error(result.message || '系统管理员测试登录失败')
-        }
-
-      } catch (error) {
-        console.error('系统管理员测试登录失败:', error)
-        this.handleLoginError(error, '系统管理员测试登录失败')
-      } finally {
-        this.showLoading = false
-      }
-    },
-
-    /**
-     * 指定部门管理员登录
-     */
-    async handleSpecificDeptLogin(dept) {
-      this.showLoading = true
-      this.loadingText = `正在登录${dept.name}管理员...`
-
-      try {
-        // 调用指定部门管理员测试登录API
-        const result = await api.auth.testLoginSpecificDeptAdmin(dept.code)
-
-        if (result && result.success) {
-          // 保存登录信息
-          this.saveLoginInfo(result.data)
-
-          // 显示登录成功信息
-          uni.showToast({
-            title: `${dept.name}管理员登录成功`,
-            icon: 'success',
-            duration: 3000
-          })
-
-          // 关闭部门选择器
-          this.showDeptSelector = false
-
-          // 显示登录成功信息并跳转
-          this.showLoginSuccessInfo(result.data.userInfo)
-        } else {
-          throw new Error(result.message || '部门管理员登录失败')
-        }
-      } catch (error) {
-        console.error('部门管理员登录失败:', error)
-        uni.showModal({
-          title: '登录失败',
-          content: error.message || '部门管理员登录失败，请重试',
-          show取消: false
-        })
-      } finally {
-        this.showLoading = false
-      }
-    },
-
-    /**
-     * 关闭部门选择器
-     */
-    closeDeptSelector() {
-      this.showDeptSelector = false
-    },
-
-    /**
-     * 执行测试登录
-     */
-    async performTestLogin() {
-      this.showLoading = true
-      this.loadingText = '正在测试登录...'
-      
-      try {
-        // 调用普通用户测试登录API
-        const result = await api.auth.testLoginUser()
-
-        if (result && result.success) {
-          // 保存测试登录信息
-          this.saveLoginInfo(result.data)
-
-          // 显示测试登录成功提示
-          uni.showToast({
-            title: '普通用户测试登录成功',
-            icon: 'success',
-            duration: 3000
-          })
-
-          // 更新页面状态，显示登录成功信息
-          this.showLoginSuccessInfo(result.data.userInfo)
-
-        } else {
-          throw new Error(result.message || '测试登录失败')
-        }
-
-      } catch (error) {
-        console.error('测试登录失败:', error)
-        
-        // 如果API调用失败，使用本地测试数据作为备选方案
-        try {
-          const localTestData = {
-            token: 'test_token_' + Date.now(),
-            userInfo: {
-              _id: 'test_user_id',
-              openid: 'test_openid',
-              nickName: '测试用户',
-              avatarUrl: '/static/logo.png',
-              role: 'user',
-              department: '测试部门',
-              phoneNumber: '13800138000',
-              email: 'test@example.com',
-              createTime: new Date(),
-              lastLoginTime: new Date()
-            }
-          }
-          
-          this.saveLoginInfo(localTestData)
-          
-          uni.showToast({
-            title: '本地测试登录成功',
-            icon: 'success',
-            duration: 3000
-          })
-          
-          // 更新页面状态，显示登录成功信息
-          this.showLoginSuccessInfo(localTestData.userInfo)
-          
-        } catch (local错误) {
-          console.error('本地测试登录也失败:', local错误)
-          uni.showToast({
-            title: '测试登录失败，请重试',
-            icon: 'none'
-          })
-        }
-      } finally {
-        this.showLoading = false
-      }
-    },
     
     /**
      * 显示登录成功信息
@@ -748,6 +435,39 @@ export default {
      * 跳转到首页
      */
     navigateToHome() {
+      // 检查是否有登录后需要跳转的目标页面
+      try {
+        const redirectPath = uni.getStorageSync('redirectAfterLogin')
+        if (redirectPath) {
+          // 清除保存的跳转路径
+          uni.removeStorageSync('redirectAfterLogin')
+          
+          // 跳转到目标页面
+          uni.redirectTo({
+            url: redirectPath,
+            success: () => {
+              console.log('跳转到目标页面成功:', redirectPath)
+            },
+            fail: (error) => {
+              console.error('跳转到目标页面失败:', error)
+              // 如果跳转失败，跳转到首页
+              this.navigateToHomeFallback()
+            }
+          })
+          return
+        }
+      } catch (error) {
+        console.error('检查跳转路径失败:', error)
+      }
+      
+      // 没有目标页面，跳转到首页
+      this.navigateToHomeFallback()
+    },
+    
+    /**
+     * 跳转到首页的备用方法
+     */
+    navigateToHomeFallback() {
       // 使用 switchTab 跳转到 tabBar 页面
       uni.switchTab({
         url: '/pages/index/index',
@@ -1016,56 +736,44 @@ export default {
   text-align: center;
 }
 
-/* 其他登录方式 - 使用模板的网格布局 */
-.other-login {
+/* 帮助中心 */
+.help-section {
   margin-top: 30px;
   padding-top: 20px;
   padding-bottom: 20px;
   border-top: 2px solid #f0f0f0;
-}
-
-.other-title {
-  display: block;
-  font-size: 14px;
-  color: #666;
   text-align: center;
-  margin-bottom: 20px;
 }
 
-.other-buttons {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-}
-
-.other-btn {
-  height: 60px;
+.help-btn {
+  height: 50px;
   background: white;
   border: 2px solid #e9ecef;
   border-radius: 12px;
   color: #666;
-  font-size: 12px;
+  font-size: 14px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
   box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+  width: 200px;
+  margin: 0 auto;
 }
 
-.other-btn:active {
+.help-btn:active {
   transform: scale(0.98);
   background: #f8f9fa;
   border-color: #667eea;
 }
 
-.other-icon {
+.help-icon {
   font-size: 18px;
-  margin-bottom: 4px;
+  margin-right: 8px;
 }
 
-.other-text {
-  font-size: 12px;
+.help-text {
+  font-size: 14px;
 }
 
 /* 底部信息 */
@@ -1130,99 +838,6 @@ export default {
   color: #333;
 }
 
-/* 部门选择器样式 */
-.dept-admin-section {
-  margin-top: 20px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px solid #e9ecef;
-}
-
-.dept-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.section-desc {
-  display: block;
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.dept-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-}
-
-.dept-btn {
-  background: white;
-  border: 2px solid #e9ecef;
-  border-radius: 12px;
-  padding: 16px 12px;
-  text-align: center;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.dept-btn:active {
-  transform: scale(0.98);
-  background: #f8f9fa;
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
-}
-
-.dept-icon {
-  display: block;
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
-.dept-name {
-  display: block;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 4px;
-  line-height: 1.2;
-}
-
-.dept-phone {
-  display: block;
-  font-size: 12px;
-  color: #666;
-}
-
-.close-dept-selector {
-  width: 32px;
-  height: 32px;
-  background: #6c757d;
-  border: none;
-  border-radius: 50%;
-  color: white;
-  font-size: 14px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.close-dept-selector:active {
-  transform: scale(0.95);
-  background: #5a6268;
-}
-
-.close-icon {
-  font-size: 16px;
-}
 
 /* 响应式适配 */
 @media (max-width: 750rpx) {
@@ -1244,29 +859,13 @@ export default {
     height: 50px;
   }
   
-  .other-buttons {
-    gap: 10px;
+  .help-btn {
+    width: 180px;
+    height: 45px;
   }
   
-  .other-btn {
-    height: 50px;
-  }
-  
-  .dept-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-  
-  .dept-btn {
-    padding: 12px 8px;
-  }
-  
-  .dept-name {
+  .help-text {
     font-size: 13px;
-  }
-  
-  .dept-phone {
-    font-size: 11px;
   }
 }
 </style>

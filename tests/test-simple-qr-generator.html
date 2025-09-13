@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单二维码生成器测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .test-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .test-button {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #1976d2;
+        }
+        .test-result {
+            background: #f0f0f0;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 4px solid #2196f3;
+        }
+        .error {
+            border-left-color: #f44336;
+            background: #ffebee;
+        }
+        .success {
+            border-left-color: #4caf50;
+            background: #e8f5e8;
+        }
+        .qr-content {
+            font-family: monospace;
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .qr-display {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #f9f9f9;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>简单二维码生成器测试</h1>
+    
+    <div class="test-section">
+        <div class="test-title">1. 测试固定二维码生成（微信小程序环境）</div>
+        <button class="test-button" onclick="testFixedQRGeneration()">生成固定二维码</button>
+        <div id="fixed-qr-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">2. 测试就餐确认二维码生成</div>
+        <button class="test-button" onclick="testDiningConfirmQR()">生成就餐确认二维码</button>
+        <div id="dining-qr-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">3. 测试微信小程序码生成</div>
+        <button class="test-button" onclick="testWechatMiniProgramQR()">生成微信小程序码</button>
+        <div id="wechat-qr-result" class="test-result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <div class="test-title">4. 测试环境检测</div>
+        <button class="test-button" onclick="testEnvironmentDetection()">检测环境</button>
+        <div id="env-result" class="test-result" style="display: none;"></div>
+    </div>
+
+    <script>
+        // 模拟微信小程序环境
+        if (typeof wx === 'undefined') {
+            window.wx = {
+                getSystemInfoSync: function() {
+                    return { platform: 'devtools' }
+                }
+            }
+        }
+
+        // 模拟简单二维码生成器
+        const FIXED_QR_CODE_ID = 'DINING_CONFIRM_FIXED_001'
+        
+        const isWechatMiniProgram = () => {
+            return typeof wx !== 'undefined' && wx.getSystemInfoSync
+        }
+
+        const generateSceneToken = () => {
+            const timestamp = Date.now()
+            const random = Math.random().toString(36).substr(2, 9)
+            return `dining_${timestamp}_${random}`
+        }
+
+        const generateDiningConfirmURL = (sceneToken, baseURL = '') => {
+            const base = baseURL || (typeof window !== 'undefined' ? window.location.origin : '')
+            return `${base}/pages/dining/external-scan?scene_token=${sceneToken}`
+        }
+
+        const generateWechatMiniProgramParams = (sceneToken) => {
+            return `scene_token=${sceneToken}`
+        }
+
+        // 测试固定二维码生成
+        async function testFixedQRGeneration() {
+            const resultDiv = document.getElementById('fixed-qr-result')
+            resultDiv.style.display = 'block'
+            resultDiv.className = 'test-result'
+            resultDiv.innerHTML = '正在生成固定二维码...'
+            
+            try {
+                const timestamp = Date.now()
+                const qrContent = `${FIXED_QR_CODE_ID}_${timestamp}`
+                
+                const result = {
+                    success: true,
+                    data: {
+                        qrCodeImage: qrContent,
+                        content: qrContent,
+                        qrCodeId: FIXED_QR_CODE_ID,
+                        timestamp: timestamp,
+                        type: 'fixed_dining_confirm',
+                        platform: isWechatMiniProgram() ? 'wechat_miniprogram' : 'web',
+                        fallback: true
+                    }
+                }
+                
+                resultDiv.className = 'test-result success'
+                resultDiv.innerHTML = `
+                    <h4>✅ 固定二维码生成成功</h4>
+                    <div class="qr-display">
+                        <h5>二维码内容（微信扫码时使用）</h5>
+                        <div class="qr-content">${result.data.content}</div>
+                    </div>
+                    <p><strong>生成时间:</strong> ${new Date(result.data.timestamp).toLocaleString()}</p>
+                    <p><strong>平台:</strong> ${result.data.platform}</p>
+                    <p><strong>类型:</strong> ${result.data.type}</p>
+                    <p><strong>状态:</strong> 已生成，可直接使用</p>
+                `
+            } catch (error) {
+                resultDiv.className = 'test-result error'
+                resultDiv.innerHTML = `
+                    <h4>❌ 固定二维码生成失败</h4>
+                    <p><strong>错误信息:</strong> ${error.message}</p>
+                `
+            }
+        }
+
+        // 测试就餐确认二维码生成
+        async function testDiningConfirmQR() {
+            const resultDiv = document.getElementById('dining-qr-result')
+            resultDiv.style.display = 'block'
+            resultDiv.className = 'test-result'
+            resultDiv.innerHTML = '正在生成就餐确认二维码...'
+            
+            try {
+                const sceneToken = generateSceneToken()
+                const content = generateDiningConfirmURL(sceneToken)
+                
+                const result = {
+                    success: true,
+                    data: {
+                        qrCodeImage: content,
+                        content: content,
+                        sceneToken: sceneToken,
+                        type: 'url',
+                        platform: isWechatMiniProgram() ? 'wechat_miniprogram' : 'web'
+                    }
+                }
+                
+                resultDiv.className = 'test-result success'
+                resultDiv.innerHTML = `
+                    <h4>✅ 就餐确认二维码生成成功</h4>
+                    <div class="qr-display">
+                        <h5>二维码内容</h5>
+                        <div class="qr-content">${result.data.content}</div>
+                    </div>
+                    <p><strong>场景令牌:</strong></p>
+                    <div class="qr-content">${result.data.sceneToken}</div>
+                    <p><strong>类型:</strong> ${result.data.type}</p>
+                    <p><strong>平台:</strong> ${result.data.platform}</p>
+                `
+            } catch (error) {
+                resultDiv.className = 'test-result error'
+                resultDiv.innerHTML = `
+                    <h4>❌ 就餐确认二维码生成失败</h4>
+                    <p><strong>错误信息:</strong> ${error.message}</p>
+                `
+            }
+        }
+
+        // 测试微信小程序码生成
+        async function testWechatMiniProgramQR() {
+            const resultDiv = document.getElementById('wechat-qr-result')
+            resultDiv.style.display = 'block'
+            resultDiv.className = 'test-result'
+            resultDiv.innerHTML = '正在生成微信小程序码...'
+            
+            try {
+                const sceneToken = generateSceneToken()
+                const content = generateWechatMiniProgramParams(sceneToken)
+                
+                const result = {
+                    success: true,
+                    data: {
+                        qrCodeImage: content,
+                        content: content,
+                        sceneToken: sceneToken,
+                        type: 'wechat_miniprogram',
+                        platform: isWechatMiniProgram() ? 'wechat_miniprogram' : 'web'
+                    }
+                }
+                
+                resultDiv.className = 'test-result success'
+                resultDiv.innerHTML = `
+                    <h4>✅ 微信小程序码生成成功</h4>
+                    <div class="qr-display">
+                        <h5>小程序码参数</h5>
+                        <div class="qr-content">${result.data.content}</div>
+                    </div>
+                    <p><strong>场景令牌:</strong></p>
+                    <div class="qr-content">${result.data.sceneToken}</div>
+                    <p><strong>类型:</strong> ${result.data.type}</p>
+                    <p><strong>平台:</strong> ${result.data.platform}</p>
+                `
+            } catch (error) {
+                resultDiv.className = 'test-result error'
+                resultDiv.innerHTML = `
+                    <h4>❌ 微信小程序码生成失败</h4>
+                    <p><strong>错误信息:</strong> ${error.message}</p>
+                `
+            }
+        }
+
+        // 测试环境检测
+        function testEnvironmentDetection() {
+            const resultDiv = document.getElementById('env-result')
+            resultDiv.style.display = 'block'
+            
+            const isWechat = isWechatMiniProgram()
+            const platform = isWechat ? '微信小程序' : 'Web浏览器'
+            
+            resultDiv.className = 'test-result success'
+            resultDiv.innerHTML = `
+                <h4>✅ 环境检测完成</h4>
+                <p><strong>当前平台:</strong> ${platform}</p>
+                <p><strong>wx对象:</strong> ${typeof wx !== 'undefined' ? '存在' : '不存在'}</p>
+                <p><strong>getSystemInfoSync:</strong> ${typeof wx !== 'undefined' && wx.getSystemInfoSync ? '存在' : '不存在'}</p>
+                <p><strong>建议方案:</strong> ${isWechat ? '使用内容显示模式，直接返回二维码内容' : '使用图片生成模式，生成真正的二维码图片'}</p>
+                <p><strong>二维码显示:</strong> ${isWechat ? '显示内容文字' : '显示图片'}</p>
+            `
+        }
+    </script>
+</body>
+</html>

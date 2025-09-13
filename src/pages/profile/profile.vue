@@ -219,7 +219,7 @@
     <!-- 版本信息 -->
     <view class="version-info">
       <text class="version-text">智慧物业管理系统 v1.0.0</text>
-      <text class="copyright-text">© 2024 湖北省地质局第三地质大队</text>
+      <text class="copyright-text">© 2025 湖北省地质局第三地质大队</text>
     </view>
 
     <!-- 编辑个人信息弹窗 -->
