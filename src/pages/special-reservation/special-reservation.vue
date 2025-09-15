@@ -177,9 +177,11 @@
 <script>
 import auth from '@/utils/auth.js'
 import api from '@/utils/api.js'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'SpecialReservation',
+  mixins: [timeMixin],
   data() {
     return {
       formData: {
@@ -208,12 +210,12 @@ export default {
   
   computed: {
     today() {
-      const today = new Date()
+      const today = this.$createSafeDate()
       return today.toISOString().split('T')[0]
     },
     
     maxDate() {
-      const maxDate = new Date()
+      const maxDate = this.$createSafeDate()
       maxDate.setDate(maxDate.getDate() + 7) // 最多预约7天后
       return maxDate.toISOString().split('T')[0]
     },

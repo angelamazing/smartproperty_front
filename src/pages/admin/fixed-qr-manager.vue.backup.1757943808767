@@ -212,10 +212,8 @@
 
 <script>
 import fixedQRGenerator from '@/utils/fixedQRGenerator.js'
-import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
-  mixins: [timeMixin],
   name: 'FixedQRManager',
   data() {
     return {
@@ -379,7 +377,7 @@ export default {
               <title>固定就餐确认二维码</title>
               <style>
                 body { 
-                  margin: 0;
+                  margin: 0; 
                   padding: 20px; 
                   text-align: center; 
                   font-family: Arial, sans-serif;
@@ -444,12 +442,10 @@ export default {
       return typeNames[type] || type
     },
     
-    // 格式化时间（iOS 兼容版本）
+    // 格式化时间
     formatTime(timestamp) {
-      const date = this.$createDate(timestamp)
-      if (!date) return ''
-      // 使用 iOS 兼容的格式化方式
-      return this.$formatDateTime(date, 'YYYY-MM-DD HH:mm:ss')
+      const date = new Date(timestamp)
+      return date.toLocaleString('zh-CN')
     },
 
     // 测试二维码扫码
@@ -495,7 +491,7 @@ export default {
         uni.showModal({
           title: canScan ? '测试成功' : '测试失败',
           content: canScan ? 
-            `${mealName}确认成功！\n\n当前时间: ${this.$formatDateTime(now, 'YYYY-MM-DD HH:mm:ss')}\n餐次: ${mealName}\n用户: ${mockUserInfo.nickName}` :
+            `${mealName}确认成功！\n\n当前时间: ${now.toLocaleString()}\n餐次: ${mealName}\n用户: ${mockUserInfo.nickName}` :
             `当前时间 ${hour}:${now.getMinutes().toString().padStart(2, '0')} 不在就餐时间内\n\n就餐时间：\n早餐 06:00-10:00\n午餐 11:00-14:00\n晚餐 17:00-20:00`,
           showCancel: false,
           confirmText: '知道了'

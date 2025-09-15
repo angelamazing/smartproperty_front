@@ -2,11 +2,22 @@
  * 时间处理混入
  * 为Vue组件提供统一的时间处理功能
  * 基于新的TimeUtils工具类，支持UTC时间和北京时间的正确转换
+ * 集成 iOS 兼容性支持（包括微信小程序安全版本）
  */
 import { TimeUtils, TimeCache } from '@/utils/timeUtils.js'
+import { iosDateMixin } from '@/utils/iosCompatibleDate.js'
+import { miniProgramDateMixin } from '@/utils/miniProgramDateFix.js'
 
 export default {
+  // 合并 iOS 兼容性混入
+  ...iosDateMixin,
+  // 合并微信小程序安全版本混入
+  ...miniProgramDateMixin,
   methods: {
+    // 添加 iOS 兼容性方法
+    ...iosDateMixin.methods,
+    // 添加微信小程序安全方法
+    ...miniProgramDateMixin.methods,
     /**
      * 格式化时间
      * @param {string|Date} timeString - 时间字符串

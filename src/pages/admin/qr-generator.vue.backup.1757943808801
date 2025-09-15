@@ -187,10 +187,8 @@
 <script>
 import api from '@/utils/api.js'
 import qrGenerator from '@/utils/qrGenerator.js'
-import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
-  mixins: [timeMixin],
   name: 'QRGenerator',
   data() {
     return {
@@ -492,12 +490,10 @@ export default {
       }
     },
     
-    // 格式化时间（iOS 兼容版本）
+    // 格式化时间
     formatTime(timestamp) {
-      const date = this.$createDate(timestamp)
-      if (!date) return ''
-      // 使用 iOS 兼容的格式化方式
-      return this.$formatDateTime(date, 'YYYY-MM-DD HH:mm:ss')
+      const date = new Date(timestamp)
+      return date.toLocaleString('zh-CN')
     }
   }
 }

@@ -123,10 +123,8 @@
 <script>
 import api from '@/utils/api'
 import DishSelector from '@/components/DishSelector.vue'
-import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
-  mixins: [timeMixin],
   name: 'Menu编辑',
   components: {
     DishSelector
@@ -137,7 +135,13 @@ export default {
       menuId: '',
       showDishModal: false,
       menuForm: {
-        date: '',
+        date: (() => {
+          const today = new Date()
+          const year = today.getFullYear()
+          const month = String(today.getMonth() + 1).padStart(2, '0')
+          const day = String(today.getDate()).padStart(2, '0')
+          return `${year}-${month}-${day}`
+        })(),
         mealTypeIndex: 0,
         description: '',
         dishes: []
@@ -150,9 +154,6 @@ export default {
     }
   },
   onLoad(options) {
-    // 初始化默认日期
-    this.initDefaultDate()
-    
     if (options.menuId) {
       this.is编辑 = true
       this.menuId = options.menuId
@@ -160,15 +161,6 @@ export default {
     }
   },
   methods: {
-    // 初始化默认日期
-    initDefaultDate() {
-      const today = this.$createSafeDate()
-      const year = today.getFullYear()
-      const month = String(today.getMonth() + 1).padStart(2, '0')
-      const day = String(today.getDate()).padStart(2, '0')
-      this.menuForm.date = `${year}-${month}-${day}`
-    },
-    
     // 格式化日期为选择器格式
     formatDateForPicker(date) {
       const year = date.getFullYear()
@@ -180,7 +172,7 @@ export default {
     // 格式化日期显示
     formatDate(dateStr) {
       if (!dateStr) return '请选择日期'
-      const date = this.$createDate(dateStr)
+      const date = new Date(dateStr)
       const month = date.getMonth() + 1
       const day = date.getDate()
       const weekdays = ['日', '一', '二', '三', '四', '五', '六']

@@ -19,6 +19,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import 'dayjs/locale/zh-cn';
+import { IOSCompatibleDate } from './iosCompatibleDate.js';
 
 // 配置插件
 dayjs.extend(relativeTime);
@@ -45,7 +46,13 @@ export class TimeUtils {
         return dayjs(timeString);
       }
       
-      // 如果传入的不是字符串，先转换为字符串
+      // 使用 iOS 兼容的日期创建器
+      const compatibleDate = IOSCompatibleDate.create(timeString);
+      if (compatibleDate) {
+        return dayjs(compatibleDate);
+      }
+      
+      // 如果上面失败了，尝试原来的方法作为后备
       if (typeof timeString !== 'string') {
         timeString = String(timeString);
       }

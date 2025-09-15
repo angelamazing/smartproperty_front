@@ -553,14 +553,14 @@ export default {
      */
     previousDate() {
       try {
-        // 使用iOS兼容的Date对象处理日期
-        const currentDate = this.$createSafeDate(this.selectedDate)
+        // 使用原生Date对象处理日期
+        const currentDate = new Date(this.selectedDate)
         if (isNaN(currentDate.getTime())) {
           console.error('无法解析当前日期:', this.selectedDate)
           return
         }
         
-        const previousDay = this.$createDate(currentDate)
+        const previousDay = new Date(currentDate)
         previousDay.setDate(currentDate.getDate() - 1)
         
         this.selectedDate = this.formatDateForPicker(previousDay)
@@ -572,14 +572,14 @@ export default {
 
     nextDate() {
       try {
-        // 使用iOS兼容的Date对象处理日期
-        const currentDate = this.$createSafeDate(this.selectedDate)
+        // 使用原生Date对象处理日期
+        const currentDate = new Date(this.selectedDate)
         if (isNaN(currentDate.getTime())) {
           console.error('无法解析当前日期:', this.selectedDate)
           return
         }
         
-        const nextDay = this.$createDate(currentDate)
+        const nextDay = new Date(currentDate)
         nextDay.setDate(currentDate.getDate() + 1)
         
         this.selectedDate = this.formatDateForPicker(nextDay)
@@ -953,11 +953,11 @@ export default {
       
       try {
         // 使用原生Date对象进行日期比较，避免dayjs配置问题
-        const targetDate = this.$createDate(dateStr)
+        const targetDate = new Date(dateStr)
         if (isNaN(targetDate.getTime())) return ''
         
-        const today = this.$createSafeDate()
-        const tomorrow = this.$createDate(today)
+        const today = new Date()
+        const tomorrow = new Date(today)
         tomorrow.setDate(today.getDate() + 1)
         
         // 判断是否为今天或明天

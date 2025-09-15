@@ -145,9 +145,11 @@
 
 <script>
 import api from '@/utils/api.js'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'DeptStats',
+  mixins: [timeMixin],
   data() {
     return {
       statsData: {
@@ -189,8 +191,8 @@ export default {
   methods: {
     // 初始化日期范围（默认最近7天）
     initDateRange() {
-      const today = new Date()
-      const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
+      const today = this.$createSafeDate()
+      const weekAgo = this.$createSafeDate(today.getTime() - 7 * 24 * 60 * 60 * 1000)
       
       this.dateRange.endDate = today.toISOString().split('T')[0]
       this.dateRange.startDate = weekAgo.toISOString().split('T')[0]

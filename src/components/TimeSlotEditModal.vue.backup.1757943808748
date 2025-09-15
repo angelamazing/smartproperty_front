@@ -183,10 +183,8 @@
 
 <script>
 import api from '@/utils/api'
-import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
-  mixins: [timeMixin],
   name: 'TimeSlot编辑Modal',
   props: {
     visible: {
@@ -230,8 +228,8 @@ export default {
     duration() {
       if (!this.timeslotData.startTime || !this.timeslotData.endTime) return 0
       
-      const start = this.$createSafeDate(`2000-01-01 ${this.timeslotData.startTime}`)
-      const end = this.$createSafeDate(`2000-01-01 ${this.timeslotData.endTime}`)
+      const start = new Date(`2000-01-01 ${this.timeslotData.startTime}`)
+      const end = new Date(`2000-01-01 ${this.timeslotData.endTime}`)
       
       if (end <= start) return 0
       
@@ -336,7 +334,7 @@ export default {
       this.enableBatch = e.detail.value
       if (e.detail.value) {
         // 设置默认结束日期为一周后
-        const nextWeek = this.$createSafeDate()
+        const nextWeek = new Date()
         nextWeek.setDate(nextWeek.getDate() + 7)
         this.batchEndDate = nextWeek.toISOString().split('T')[0]
       }
@@ -369,15 +367,15 @@ export default {
       }
 
       const preview = []
-      const startDate = this.$createSafeDate(this.timeslotData.date)
-      const endDate = this.$createSafeDate(this.batchEndDate)
+      const startDate = new Date(this.timeslotData.date)
+      const endDate = new Date(this.batchEndDate)
       
       if (endDate < startDate) {
         this.batchPreview = []
         return
       }
 
-      let currentDate = this.$createDate(startDate)
+      let currentDate = new Date(startDate)
       
       while (currentDate <= endDate) {
         let should添加 = false
@@ -442,7 +440,7 @@ export default {
           return
         }
         
-        if (this.$createSafeDate(this.batchEndDate) < this.$createSafeDate(this.timeslotData.date)) {
+        if (new Date(this.batchEndDate) < new Date(this.timeslotData.date)) {
           uni.showToast({
             title: '结束日期不能早于开始日期',
             icon: 'error'
@@ -514,7 +512,7 @@ export default {
      * 工具方法
      */
     get今天Date() {
-      const today = this.$createSafeDate()
+      const today = new Date()
       return today.toISOString().split('T')[0]
     },
 

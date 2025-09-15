@@ -12,10 +12,7 @@
 </template>
 
 <script>
-import timeMixin from '@/mixins/timeMixin.js'
-
 export default {
-  mixins: [timeMixin],
   name: 'DatePicker',
   props: {
     modelValue: {
@@ -87,7 +84,7 @@ export default {
       }
       
       // 检查日期是否有效
-      const date = this.$createDate(dateStr)
+      const date = new Date(dateStr)
       return !isNaN(date.getTime()) && date.toISOString().split('T')[0] === dateStr
     }
   }

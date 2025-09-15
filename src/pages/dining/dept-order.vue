@@ -132,9 +132,11 @@
 <script>
   import UserAvatar from '@/components/UserAvatar.vue'
 import api from '@/utils/api.js'
+import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
   name: 'DeptOrder',
+  mixins: [timeMixin],
   components: {
     UserAvatar
   },
@@ -159,7 +161,7 @@ export default {
   },
   computed: {
     today() {
-      const today = new Date()
+      const today = this.$createSafeDate()
       return today.toISOString().split('T')[0]
     },
     can提交() {
@@ -175,7 +177,7 @@ export default {
   methods: {
     // 初始化表单
     initForm() {
-      const today = new Date()
+      const today = this.$createSafeDate()
       this.orderForm.date = today.toISOString().split('T')[0]
     },
 

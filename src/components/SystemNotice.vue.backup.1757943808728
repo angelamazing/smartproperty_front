@@ -111,7 +111,7 @@ export default {
     formatTime(time) {
       if (!time) return ''
       
-      const date = this.$createDate(time)
+      const date = new Date(time)
       const now = new Date()
       const diff = now - date
       

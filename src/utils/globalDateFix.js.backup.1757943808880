@@ -1,0 +1,117 @@
+/**
+ * 全局日期修复器 - iOS 兼容性
+ * 这个文件要解决所有该死的 iOS 日期兼容性问题
+ * 
+ * 使用方法：在应用启动时导入这个文件即可
+ * import './utils/globalDateFix.js'
+ * 
+ * @author Linus style fix
+ */
+
+import { IOSCompatibleDate } from './iosCompatibleDate.js';
+
+/**
+ * 备份原始的 Date 构造函数
+ */
+const OriginalDate = window.Date;
+
+/**
+ * 创建 iOS 兼容的 Date 构造函数
+ */
+function IOSCompatibleDateConstructor(...args) {
+  // 如果没有参数，返回当前时间
+  if (args.length === 0) {
+    return new OriginalDate();
+  }
+  
+  // 如果只有一个参数且是字符串，使用我们的兼容解析器
+  if (args.length === 1 && typeof args[0] === 'string') {
+    const compatibleDate = IOSCompatibleDate.create(args[0]);
+    if (compatibleDate) {
+      return compatibleDate;
+    }
+    // 如果兼容解析器失败，回退到原始构造函数
+    return new OriginalDate(args[0]);
+  }
+  
+  // 其他情况（多个参数、数字等），直接使用原始构造函数
+  return new OriginalDate(...args);
+}
+
+/**
+ * 复制原始 Date 的所有静态方法和属性
+ */
+Object.setPrototypeOf(IOSCompatibleDateConstructor, OriginalDate);
+IOSCompatibleDateConstructor.prototype = OriginalDate.prototype;
+
+// 复制静态方法
+Object.getOwnPropertyNames(OriginalDate).forEach(name => {
+  if (name !== 'length' && name !== 'name' && name !== 'prototype') {
+    Object.defineProperty(IOSCompatibleDateConstructor, name, 
+      Object.getOwnPropertyDescriptor(OriginalDate, name)
+    );
+  }
+});
+
+/**
+ * 特殊处理 Date.parse
+ */
+IOSCompatibleDateConstructor.parse = function(dateString) {
+  const compatibleDate = IOSCompatibleDate.create(dateString);
+  if (compatibleDate) {
+    return compatibleDate.getTime();
+  }
+  return OriginalDate.parse(dateString);
+};
+
+/**
+ * 安装全局修复
+ */
+export function installGlobalDateFix() {
+  // 替换全局的 Date 构造函数
+  window.Date = IOSCompatibleDateConstructor;
+  
+  // 确保在严格模式下也能工作
+  if (typeof global !== 'undefined') {
+    global.Date = IOSCompatibleDateConstructor;
+  }
+  
+  console.log('✅ iOS 日期兼容性修复已安装');
+}
+
+/**
+ * 卸载全局修复（测试用）
+ */
+export function uninstallGlobalDateFix() {
+  window.Date = OriginalDate;
+  if (typeof global !== 'undefined') {
+    global.Date = OriginalDate;
+  }
+  console.log('❌ iOS 日期兼容性修复已卸载');
+}
+
+/**
+ * 检查当前环境是否为 iOS
+ */
+export function isIOSEnvironment() {
+  if (typeof navigator === 'undefined') return false;
+  
+  const userAgent = navigator.userAgent;
+  return /iPad|iPhone|iPod/.test(userAgent) || 
+         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * 条件安装：只在 iOS 环境中安装修复
+ */
+export function conditionalInstall() {
+  if (isIOSEnvironment()) {
+    installGlobalDateFix();
+    console.log('🍎 检测到 iOS 环境，已安装日期兼容性修复');
+  } else {
+    console.log('🖥️ 非 iOS 环境，跳过日期兼容性修复');
+  }
+}
+
+// 自动安装（可以根据需要注释掉这行）
+// installGlobalDateFix();

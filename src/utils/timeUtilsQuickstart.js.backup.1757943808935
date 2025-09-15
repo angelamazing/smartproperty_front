@@ -3,7 +3,7 @@
  * 
  * 这个文件提供了使用增强版 TimeUtils 解决 iOS 日期兼容性问题的快速实施方案
  * 
- * 问题：this.$createDate("9/13/2025, 5:39:15 PM") 在 iOS 上不兼容
+ * 问题：new Date("9/13/2025, 5:39:15 PM") 在 iOS 上不兼容
  * 解决：使用 TimeUtils.parseTime() 替代
  */
 

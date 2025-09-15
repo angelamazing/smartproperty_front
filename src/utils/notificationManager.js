@@ -259,7 +259,7 @@ class NotificationManager {
     setInterval(() => {
       const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
       this.notifications = this.notifications.filter(n => 
-        new Date(n.time) > sevenDaysAgo
+        new Date(n.time.replace ? n.time.replace(/-/g, '/') : n.time) > sevenDaysAgo
       )
       this.saveNotifications()
     }, 24 * 60 * 60 * 1000) // 24小时
@@ -313,7 +313,7 @@ class NotificationManager {
       total: this.notifications.length,
       unread: this.getUnreadCount(),
       today: this.notifications.filter(n => 
-        new Date(n.time) >= today
+        new Date(n.time.replace ? n.time.replace(/-/g, '/') : n.time) >= today
       ).length,
       byType: this.notifications.reduce((acc, n) => {
         acc[n.type] = (acc[n.type] || 0) + 1

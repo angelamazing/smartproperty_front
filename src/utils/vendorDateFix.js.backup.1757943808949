@@ -3,7 +3,7 @@
  * 
  * 专门解决 vendor.js 中的 iOS 日期兼容性问题
  * 错误信息: "at http://127.0.0.1:59159/appservice/common/vendor.js:4067:20
- *           this.$createDate("9/13/2025, 7:19:58 AM") 在部分 iOS 下无法正常使用"
+ *           new Date("9/13/2025, 7:19:58 AM") 在部分 iOS 下无法正常使用"
  * 
  * 使用方法：在 main.js 中尽早调用 setupVendorDateFix()
  */

@@ -74,14 +74,7 @@ export class DateFormatter {
       if (dateInput instanceof Date) {
         date = dateInput;
       } else if (typeof dateInput === 'string' || typeof dateInput === 'number') {
-        // 使用安全的日期创建方法
-        if (typeof dateInput === 'string') {
-          // 转换为iOS兼容格式
-          const iosCompatible = dateInput.replace(/-/g, '/');
-          date = new Date(iosCompatible);
-        } else {
-          date = new Date(dateInput);
-        }
+        date = new Date(dateInput);
       } else {
         return '';
       }

@@ -15,7 +15,7 @@
           <text class="stat-label">总公告</text>
         </view>
         <view class="stat-item">
-          <text class="stat-number">{{ selected否tices.length }}</text>
+          <text class="stat-number">{{ selectedNotices.length }}</text>
           <text class="stat-label">已选择</text>
         </view>
       </view>
@@ -28,13 +28,13 @@
           <text class="btn-icon">➕</text>
           <text>发布公告</text>
         </button>
-        <button class="action-btn secondary" @click="refresh否tices" :disabled="loading">
+        <button class="action-btn secondary" @click="refreshNotices" :disabled="loading">
           <text class="btn-icon" :class="{ spinning: loading }">🔄</text>
           <text>{{ loading ? '刷新中...' : '刷新' }}</text>
         </button>
-        <button class="action-btn danger" @click="batch删除" v-if="selected否tices.length > 0">
+        <button class="action-btn danger" @click="batch删除" v-if="selectedNotices.length > 0">
           <text class="btn-icon">🗑️</text>
-          <text>批量删除 ({{ selected否tices.length }})</text>
+          <text>批量删除 ({{ selectedNotices.length }})</text>
         </button>
       </view>
       
@@ -93,23 +93,23 @@
       
       <view v-else class="notice-cards">
         <view 
-          v-for="notice in filtered否tices" 
+          v-for="notice in filteredNotices" 
           :key="notice._id" 
           class="notice-card"
           :class="[
             notice.type, 
             { 
-              selected: selected否tices.includes(notice._id),
+              selected: selectedNotices.includes(notice._id),
               sticky: notice.isSticky
             }
           ]"
-          @click="toggle否ticeSelection(notice._id)"
+          @click="toggleNoticeSelection(notice._id)"
         >
           <view class="notice-header">
             <view class="notice-selection">
               <checkbox 
-                :checked="selected否tices.includes(notice._id)"
-                @change="toggle否ticeSelection(notice._id)"
+                :checked="selectedNotices.includes(notice._id)"
+                @change="toggleNoticeSelection(notice._id)"
                 @click.stop
               />
             </view>
@@ -134,10 +134,10 @@
               <button class="action-btn-small" @click.stop="editNotice(notice)">
                 <text>编辑</text>
               </button>
-              <button class="action-btn-small" @click.stop="toggle否ticeStatus(notice)" v-if="notice.status === 'draft'">
+              <button class="action-btn-small" @click.stop="toggleNoticeStatus(notice)" v-if="notice.status === 'draft'">
                 <text>发布</text>
               </button>
-              <button class="action-btn-small" @click.stop="toggle否ticeStatus(notice)" v-else-if="notice.status === 'published'">
+              <button class="action-btn-small" @click.stop="toggleNoticeStatus(notice)" v-else-if="notice.status === 'published'">
                 <text>取消发布</text>
               </button>
               <button class="action-btn-small" @click.stop="archiveNotice(notice)" v-if="notice.status === 'published'">
@@ -175,11 +175,11 @@
     </view>
 
     <!-- 发布/编辑公告弹窗 -->
-    <view v-if="show否ticeModal" class="modal-overlay" @click="close否ticeModal">
+    <view v-if="showNoticeModal" class="modal-overlay" @click="closeNoticeModal">
       <view class="modal-content" @click.stop>
         <view class="modal-header">
-          <text class="modal-title">{{ is编辑 ? '编辑公告' : '发布公告' }}</text>
-          <button class="close-btn" @click="close否ticeModal">×</button>
+          <text class="modal-title">{{ isEdit ? '编辑公告' : '发布公告' }}</text>
+          <button class="close-btn" @click="closeNoticeModal">×</button>
         </view>
         
         <view class="modal-body">
@@ -277,13 +277,13 @@
         </view>
         
         <view class="modal-footer">
-          <button class="btn-cancel" @click="close否ticeModal">取消</button>
+          <button class="btn-cancel" @click="closeNoticeModal">取消</button>
           <button 
             class="btn-confirm" 
             @click="saveNotice"
             :disabled="!can保存"
           >
-            {{ is编辑 ? '更新' : '发布' }}
+            {{ isEdit ? '更新' : '发布' }}
           </button>
         </view>
       </view>
@@ -417,7 +417,7 @@ import timeMixin from '@/mixins/timeMixin.js'
 import { TimeUtils } from '@/utils/timeUtils.js'
 
 export default {
-  name: '否ticeManagement',
+  name: 'noticeManagement',
   mixins: [timeMixin],
   data() {
     return {
@@ -426,10 +426,10 @@ export default {
       selectedTypeIndex: 0,
       selectedStatusIndex: 0,
       searchKeyword: '',
-      selected否tices: [],
-      show否ticeModal: false,
-      is编辑: false,
-      editing否ticeId: null,
+      selectedNotices: [],
+      showNoticeModal: false,
+      isEdit: false,
+      editingNoticeId: null,
       showTypePicker: false,
       showPriorityPicker: false,
       showStartTimePicker: false,
@@ -469,7 +469,7 @@ export default {
     }
   },
   computed: {
-    filtered否tices() {
+    filteredNotices() {
       let filtered = this.notices
       
       // 按类型过滤
@@ -502,13 +502,13 @@ export default {
     }
   },
   onLoad() {
-    this.load否tices()
+    this.loadNotices()
   },
   methods: {
     /**
      * 加载公告列表
      */
-    async load否tices() {
+    async loadNotices() {
       this.loading = true
       try {
         const response = await api.admin.getNotices()
@@ -606,8 +606,8 @@ export default {
     /**
      * 刷新公告列表
      */
-    async refresh否tices() {
-      await this.load否tices()
+    async refreshNotices() {
+      await this.loadNotices()
       uni.showToast({
         title: '刷新成功',
         icon: 'success'
@@ -618,7 +618,7 @@ export default {
      * 创建公告
      */
     createNotice() {
-      this.is编辑 = false
+      this.isEdit = false
       this.noticeForm = {
         title: '',
         content: '',
@@ -631,15 +631,15 @@ export default {
         endDate: '',
         endTime: ''
       }
-      this.show否ticeModal = true
+      this.showNoticeModal = true
     },
 
     /**
      * 编辑公告
      */
     editNotice(notice) {
-      this.is编辑 = true
-      this.editing否ticeId = notice.id
+      this.isEdit = true
+      this.editingNoticeId = notice.id
       
       // 解析开始时间和结束时间，使用TimeUtils确保iOS兼容性
       let startDate = '', startTime = '', endDate = '', endTime = ''
@@ -670,7 +670,7 @@ export default {
         endDate,
         endTime
       }
-      this.show否ticeModal = true
+      this.showNoticeModal = true
     },
 
     /**
@@ -716,7 +716,7 @@ export default {
               
               // 刷新公告列表以确保数据同步
               setTimeout(() => {
-                this.load否tices()
+                this.loadNotices()
               }, 1000)
             } else {
               throw new Error(response?.message || '删除失败')
@@ -810,11 +810,11 @@ export default {
           endTime
         }
 
-        if (this.is编辑) {
-          await api.admin.updateNotice(this.editing否ticeId, noticeData)
+        if (this.isEdit) {
+          await api.admin.updateNotice(this.editingNoticeId, noticeData)
           
           // 更新本地数据
-          const index = this.notices.findIndex(n => n.id === this.editing否ticeId)
+          const index = this.notices.findIndex(n => n.id === this.editingNoticeId)
           if (index > -1) {
             this.notices.splice(index, 1, {
               ...this.notices[index],
@@ -835,11 +835,11 @@ export default {
         }
 
         uni.showToast({
-          title: this.is编辑 ? '更新成功' : '发布成功',
+          title: this.isEdit ? '更新成功' : '发布成功',
           icon: 'success'
         })
         
-        this.close否ticeModal()
+        this.closeNoticeModal()
       } catch (error) {
         console.error('保存公告失败:', error)
         uni.showToast({
@@ -852,10 +852,10 @@ export default {
     /**
      * 关闭弹窗
      */
-    close否ticeModal() {
-      this.show否ticeModal = false
-      this.is编辑 = false
-      this.editing否ticeId = null
+    closeNoticeModal() {
+      this.showNoticeModal = false
+      this.isEdit = false
+      this.editingNoticeId = null
     },
 
     /**
@@ -889,12 +889,12 @@ export default {
     /**
      * 切换公告选择
      */
-    toggle否ticeSelection(noticeId) {
-      const index = this.selected否tices.indexOf(noticeId)
+    toggleNoticeSelection(noticeId) {
+      const index = this.selectedNotices.indexOf(noticeId)
       if (index > -1) {
-        this.selected否tices.splice(index, 1)
+        this.selectedNotices.splice(index, 1)
       } else {
-        this.selected否tices.push(noticeId)
+        this.selectedNotices.push(noticeId)
       }
     },
 
@@ -902,7 +902,7 @@ export default {
      * 批量删除
      */
     async batch删除() {
-      if (this.selected否tices.length === 0) {
+      if (this.selectedNotices.length === 0) {
         uni.showToast({
           title: '请选择要删除的公告',
           icon: 'none'
@@ -912,13 +912,13 @@ export default {
 
       uni.showModal({
         title: '确认删除',
-        content: `确定要删除选中的 ${this.selected否tices.length} 条公告吗？`,
+        content: `确定要删除选中的 ${this.selectedNotices.length} 条公告吗？`,
         confirmText: '删除',
         confirmColor: '#ef4444',
         success: async (res) => {
           if (res.confirm) {
             try {
-              console.log('开始批量删除公告:', this.selected否tices)
+              console.log('开始批量删除公告:', this.selectedNotices)
               
               // 显示加载状态
               uni.showLoading({
@@ -928,14 +928,14 @@ export default {
               
               try {
                 // 调用批量删除API
-                const response = await api.admin.batchDeleteNotices(this.selected否tices)
+                const response = await api.admin.batchDeleteNotices(this.selectedNotices)
                 console.log('批量删除API响应:', response)
                 
                 // 检查响应是否成功
                 if (response && response.success !== false) {
                   // 从本地数组删除
-                  this.notices = this.notices.filter(notice => !this.selected否tices.includes(notice.id))
-                  this.selected否tices = []
+                  this.notices = this.notices.filter(notice => !this.selectedNotices.includes(notice.id))
+                  this.selectedNotices = []
                   
                   uni.hideLoading()
                   uni.showToast({
@@ -945,7 +945,7 @@ export default {
                   
                   // 刷新公告列表以确保数据同步
                   setTimeout(() => {
-                    this.load否tices()
+                    this.loadNotices()
                   }, 1000)
                 } else {
                   throw new Error(response?.message || '批量删除失败')
@@ -992,7 +992,7 @@ export default {
     /**
      * 切换公告状态
      */
-    async toggle否ticeStatus(notice) {
+    async toggleNoticeStatus(notice) {
       try {
         if (notice.status === 'published') {
           // 取消发布

@@ -292,12 +292,12 @@ export default {
     update否tificationStats(type = 'add') {
       try {
         // 使用iOS兼容的日期字符串
-        const today = new Date()
+        const today = this.$createSafeDate ? this.$createSafeDate() : new Date()
         const year = today.getFullYear()
         const month = String(today.getMonth() + 1).padStart(2, '0')
         const day = String(today.getDate()).padStart(2, '0')
         const todayStr = `${year}-${month}-${day}`
-        const lastUpdate = uni.getStorageSync('last否tificationUpdate')
+        const lastUpdate = uni.getStorageSync('lastNotificationUpdate')
         
         if (type === 'add') {
           this.notificationStats.total++
@@ -318,7 +318,8 @@ export default {
         }
         
         uni.setStorageSync('notificationStats', this.notificationStats)
-        uni.setStorageSync('last否tificationUpdate', today)
+        // 存储字符串而不是 Date 对象，避免序列化问题
+        uni.setStorageSync('lastNotificationUpdate', todayStr)
       } catch (error) {
         console.error('更新通知统计失败:', error)
       }

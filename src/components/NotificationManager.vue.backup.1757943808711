@@ -12,7 +12,7 @@
         <view class="notification-content">
           <view class="notification-header">
             <view class="notification-icon">
-              <text class="icon">{{ getNotificationIcon(notification.type) }}</text>
+              <text class="icon">{{ get否tificationIcon(notification.type) }}</text>
             </view>
             <view class="notification-info">
               <text class="notification-title">{{ notification.title }}</text>
@@ -48,12 +48,12 @@
 import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
-  name: 'NotificationManager',
+  name: '否tificationManager',
   mixins: [timeMixin],
   data() {
     return {
       notifications: [],
-      maxNotifications: 5,
+      max否tifications: 5,
       autoHideDelay: 5000
     }
   },
@@ -70,7 +70,7 @@ export default {
         id,
         type: 'info',
         priority: 1,
-        time: this.$createSafeDate().toISOString(),
+        time: new Date().toISOString(),
         actions: [],
         ...notification
       }
@@ -79,8 +79,8 @@ export default {
       this.notifications.unshift(newNotification)
       
       // 限制最大数量
-      if (this.notifications.length > this.maxNotifications) {
-        this.notifications = this.notifications.slice(0, this.maxNotifications)
+      if (this.notifications.length > this.max否tifications) {
+        this.notifications = this.notifications.slice(0, this.max否tifications)
       }
       
       // 自动隐藏
@@ -128,7 +128,7 @@ export default {
     /**
      * 获取通知图标
      */
-    getNotificationIcon(type) {
+    get否tificationIcon(type) {
       const iconMap = {
         info: 'ℹ️',
         success: '✅',
@@ -149,8 +149,8 @@ export default {
     formatTime(time) {
       if (!time) return ''
       
-      const date = this.$createDate(time)
-      const now = this.$createSafeDate()
+      const date = new Date(time)
+      const now = new Date()
       const diff = now - date
       
       if (diff < 60000) return '刚刚'
