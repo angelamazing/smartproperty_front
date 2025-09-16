@@ -163,6 +163,9 @@
               <text class="notice-views" v-if="notice.viewCount > 0">
                 查看: {{ notice.viewCount }}
               </text>
+              <text class="notice-time-range" v-if="notice.startTime || notice.endTime">
+                生效时间: {{ formatNoticeTimeRange(notice.startTime, notice.endTime) }}
+              </text>
             </view>
             <view class="notice-status-info">
               <text class="notice-status" :class="notice.status">
@@ -256,21 +259,61 @@
           </view>
           
           <view class="form-group">
-            <text class="form-label">发布时间</text>
-            <view class="time-picker-group">
-              <view class="time-picker-item">
-                <text class="time-label">开始时间</text>
-                <view class="form-picker" @click="showStartTimePicker = true">
-                  <text>{{ getStartTimeDisplay() }}</text>
-                  <text class="picker-arrow">▼</text>
-                </view>
+            <text class="form-label">生效时间段</text>
+            <view class="time-range-section">
+              <view class="time-range-options">
+                <label class="time-option">
+                  <input 
+                    type="radio" 
+                    value="permanent" 
+                    v-model="noticeForm.timeRangeType"
+                    @change="onTimeRangeTypeChange"
+                  />
+                  <text>永久公告</text>
+                </label>
+                <label class="time-option">
+                  <input 
+                    type="radio" 
+                    value="temporary" 
+                    v-model="noticeForm.timeRangeType"
+                    @change="onTimeRangeTypeChange"
+                  />
+                  <text>临时公告</text>
+                </label>
               </view>
-              <view class="time-picker-item">
-                <text class="time-label">结束时间</text>
-                <view class="form-picker" @click="showEndTimePicker = true">
-                  <text>{{ getEndTimeDisplay() }}</text>
-                  <text class="picker-arrow">▼</text>
+              
+              <view v-if="noticeForm.timeRangeType === 'temporary'" class="time-range-inputs">
+                <view class="date-input-group">
+                  <view class="date-input-item">
+                    <text class="date-label">开始日期</text>
+                    <picker 
+                      mode="date" 
+                      :value="noticeForm.startDate" 
+                      @change="onStartDateChange"
+                      class="date-picker"
+                    >
+                      <view class="date-picker-display">
+                        <text>{{ noticeForm.startDate || '选择开始日期' }}</text>
+                        <text class="picker-arrow">▼</text>
+                      </view>
+                    </picker>
+                  </view>
+                  <view class="date-input-item">
+                    <text class="date-label">结束日期</text>
+                    <picker 
+                      mode="date" 
+                      :value="noticeForm.endDate" 
+                      @change="onEndDateChange"
+                      class="date-picker"
+                    >
+                      <view class="date-picker-display">
+                        <text>{{ noticeForm.endDate || '选择结束日期' }}</text>
+                        <text class="picker-arrow">▼</text>
+                      </view>
+                    </picker>
+                  </view>
                 </view>
+                <text class="time-hint">不填写时间则创建永久公告，系统会自动处理时间范围</text>
               </view>
             </view>
           </view>
@@ -335,79 +378,6 @@
       </view>
     </view>
 
-    <!-- 开始时间选择弹窗 -->
-    <view v-if="showStartTimePicker" class="time-picker-modal" @click="showStartTimePicker = false">
-      <view class="time-picker-content" @click.stop>
-        <view class="time-picker-header">
-          <text class="time-picker-title">选择开始时间</text>
-          <button class="time-picker-close" @click="showStartTimePicker = false">×</button>
-        </view>
-        <view class="time-picker-body">
-          <view class="time-picker-section">
-            <text class="time-picker-section-title">选择日期</text>
-            <input 
-              class="time-picker-input-text"
-              v-model="noticeForm.startDate" 
-              placeholder="请输入日期，格式：2025-01-27"
-              @input="validateStartDate"
-              @blur="formatStartDate"
-            />
-            <text class="time-picker-hint">格式：YYYY-MM-DD</text>
-          </view>
-          <view class="time-picker-section">
-            <text class="time-picker-section-title">选择时间</text>
-            <input 
-              class="time-picker-input-text"
-              v-model="noticeForm.startTime" 
-              placeholder="请输入时间，格式：14:30"
-              @input="validateStartTime"
-              @blur="formatStartTime"
-            />
-            <text class="time-picker-hint">格式：HH:MM</text>
-          </view>
-        </view>
-        <view class="time-picker-footer">
-          <button class="time-picker-btn" @click="showStartTimePicker = false">完成</button>
-        </view>
-      </view>
-    </view>
-
-    <!-- 结束时间选择弹窗 -->
-    <view v-if="showEndTimePicker" class="time-picker-modal" @click="showEndTimePicker = false">
-      <view class="time-picker-content" @click.stop>
-        <view class="time-picker-header">
-          <text class="time-picker-title">选择结束时间</text>
-          <button class="time-picker-close" @click="showEndTimePicker = false">×</button>
-        </view>
-        <view class="time-picker-body">
-          <view class="time-picker-section">
-            <text class="time-picker-section-title">选择日期</text>
-            <input 
-              class="time-picker-input-text"
-              v-model="noticeForm.endDate" 
-              placeholder="请输入日期，格式：2025-01-27"
-              @input="validateEndDate"
-              @blur="formatEndDate"
-            />
-            <text class="time-picker-hint">格式：YYYY-MM-DD</text>
-          </view>
-          <view class="time-picker-section">
-            <text class="time-picker-section-title">选择时间</text>
-            <input 
-              class="time-picker-input-text"
-              v-model="noticeForm.endTime" 
-              placeholder="请输入时间，格式：14:30"
-              @input="validateEndTime"
-              @blur="formatEndTime"
-            />
-            <text class="time-picker-hint">格式：HH:MM</text>
-          </view>
-        </view>
-        <view class="time-picker-footer">
-          <button class="time-picker-btn" @click="showEndTimePicker = false">完成</button>
-        </view>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -432,19 +402,16 @@ export default {
       editingNoticeId: null,
       showTypePicker: false,
       showPriorityPicker: false,
-      showStartTimePicker: false,
-      showEndTimePicker: false,
       noticeForm: {
         title: '',
         content: '',
         typeIndex: 1, // 默认选择info类型
         priorityIndex: 0, // 默认选择最低优先级
-        status: 'published',
-        isSticky: false,
+        status: 'published', // 默认立即发布
+        isSticky: false, // 默认不置顶
+        timeRangeType: 'permanent', // 默认永久公告
         startDate: '',
-        startTime: '',
-        endDate: '',
-        endTime: ''
+        endDate: ''
       },
       noticeTypes: [
         { value: 'all', name: '全部类型', color: '#6b7280' },
@@ -624,13 +591,13 @@ export default {
         content: '',
         typeIndex: 1, // 默认选择info类型
         priorityIndex: 0, // 默认选择最低优先级
-        status: 'published',
-        isSticky: false,
+        status: 'published', // 默认立即发布
+        isSticky: false, // 默认不置顶
+        timeRangeType: 'permanent', // 默认永久公告
         startDate: '',
-        startTime: '',
-        endDate: '',
-        endTime: ''
+        endDate: ''
       }
+      console.log('创建公告表单初始化:', this.noticeForm)
       this.showNoticeModal = true
     },
 
@@ -641,20 +608,27 @@ export default {
       this.isEdit = true
       this.editingNoticeId = notice.id
       
-      // 解析开始时间和结束时间，使用TimeUtils确保iOS兼容性
-      let startDate = '', startTime = '', endDate = '', endTime = ''
-      if (notice.startTime) {
-        const startDateTime = TimeUtils.createDate(notice.startTime)
-        if (startDateTime) {
-          startDate = TimeUtils.formatDate(notice.startTime)
-          startTime = TimeUtils.formatTime(notice.startTime, 'HH:mm')
+      // 解析时间段数据 - 从后端返回的startTime和endTime中提取日期
+      let timeRangeType = 'permanent'
+      let startDate = '', endDate = ''
+      
+      if (notice.startTime || notice.endTime) {
+        timeRangeType = 'temporary'
+        
+        if (notice.startTime) {
+          // 从ISO时间字符串中提取日期部分
+          const startDateTime = TimeUtils.createDate(notice.startTime)
+          if (startDateTime) {
+            startDate = TimeUtils.formatDate(notice.startTime, 'YYYY-MM-DD')
+          }
         }
-      }
-      if (notice.endTime) {
-        const endDateTime = TimeUtils.createDate(notice.endTime)
-        if (endDateTime) {
-          endDate = TimeUtils.formatDate(notice.endTime)
-          endTime = TimeUtils.formatTime(notice.endTime, 'HH:mm')
+        
+        if (notice.endTime) {
+          // 从ISO时间字符串中提取日期部分
+          const endDateTime = TimeUtils.createDate(notice.endTime)
+          if (endDateTime) {
+            endDate = TimeUtils.formatDate(notice.endTime, 'YYYY-MM-DD')
+          }
         }
       }
       
@@ -665,10 +639,9 @@ export default {
         priorityIndex: this.priorityTypes.findIndex(p => p.value === notice.priority) || 0,
         status: notice.status,
         isSticky: notice.isSticky || false,
+        timeRangeType,
         startDate,
-        startTime,
-        endDate,
-        endTime
+        endDate
       }
       this.showNoticeModal = true
     },
@@ -778,37 +751,27 @@ export default {
       }
 
       try {
-        // 构建时间字符串，确保格式正确
-        let startTime = null, endTime = null
-        
-        // 验证并格式化开始时间
-        if (this.noticeForm.startDate && this.noticeForm.startTime) {
-          const startDate = this.formatDateString(this.noticeForm.startDate)
-          const startTimeStr = this.formatTimeString(this.noticeForm.startTime)
-          if (startDate && startTimeStr) {
-            startTime = `${startDate}T${startTimeStr}:00.000Z`
-          }
-        }
-        
-        // 验证并格式化结束时间
-        if (this.noticeForm.endDate && this.noticeForm.endTime) {
-          const endDate = this.formatDateString(this.noticeForm.endDate)
-          const endTimeStr = this.formatTimeString(this.noticeForm.endTime)
-          if (endDate && endTimeStr) {
-            endTime = `${endDate}T${endTimeStr}:00.000Z`
-          }
-        }
-        
+        // 构建公告数据，根据新的API格式
         const noticeData = {
           title: this.noticeForm.title.trim(),
           content: this.noticeForm.content.trim(),
           type: this.noticeTypes[this.noticeForm.typeIndex].value,
           priority: this.priorityTypes[this.noticeForm.priorityIndex].value,
           status: this.noticeForm.status,
-          isSticky: this.noticeForm.isSticky ? 1 : 0,
-          startTime,
-          endTime
+          isSticky: this.noticeForm.isSticky
         }
+        
+        // 处理时间段数据 - 根据公告文档v4的API格式
+        if (this.noticeForm.timeRangeType === 'temporary') {
+          // 临时公告，添加时间段字段
+          if (this.noticeForm.startDate) {
+            noticeData.startDate = this.noticeForm.startDate
+          }
+          if (this.noticeForm.endDate) {
+            noticeData.endDate = this.noticeForm.endDate
+          }
+        }
+        // 永久公告不需要添加时间字段，后端会处理为永久有效
 
         if (this.isEdit) {
           await api.admin.updateNotice(this.editingNoticeId, noticeData)
@@ -1087,210 +1050,6 @@ export default {
       this.showPriorityPicker = false
     },
 
-    /**
-     * 开始日期变化
-     */
-    onStartDateChange(e) {
-      this.noticeForm.startDate = e.detail.value
-    },
-
-    /**
-     * 开始时间变化
-     */
-    onStartTimeChange(e) {
-      this.noticeForm.startTime = e.detail.value
-    },
-
-    /**
-     * 结束日期变化
-     */
-    onEndDateChange(e) {
-      this.noticeForm.endDate = e.detail.value
-    },
-
-    /**
-     * 结束时间变化
-     */
-    onEndTimeChange(e) {
-      this.noticeForm.endTime = e.detail.value
-    },
-
-    /**
-     * 验证开始日期格式
-     */
-    validateStartDate(e) {
-      const value = e.target?.value || e.detail?.value || ''
-      // 只允许输入数字和连字符
-      const cleaned = value.replace(/[^\d-]/g, '')
-      if (cleaned !== value) {
-        this.noticeForm.startDate = cleaned
-      }
-    },
-
-    /**
-     * 格式化开始日期
-     */
-    formatStartDate() {
-      const date = this.noticeForm.startDate
-      if (date && date.length === 8 && !date.includes('-')) {
-        // 如果是8位数字，格式化为YYYY-MM-DD
-        this.noticeForm.startDate = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`
-      }
-    },
-
-    /**
-     * 验证开始时间格式
-     */
-    validateStartTime(e) {
-      const value = e.target?.value || e.detail?.value || ''
-      // 只允许输入数字和冒号
-      const cleaned = value.replace(/[^\d:]/g, '')
-      if (cleaned !== value) {
-        this.noticeForm.startTime = cleaned
-      }
-    },
-
-    /**
-     * 格式化开始时间
-     */
-    formatStartTime() {
-      const time = this.noticeForm.startTime
-      if (time && time.length === 4 && !time.includes(':')) {
-        // 如果是4位数字，格式化为HH:MM
-        this.noticeForm.startTime = `${time.slice(0, 2)}:${time.slice(2, 4)}`
-      }
-    },
-
-    /**
-     * 验证结束日期格式
-     */
-    validateEndDate(e) {
-      const value = e.target?.value || e.detail?.value || ''
-      // 只允许输入数字和连字符
-      const cleaned = value.replace(/[^\d-]/g, '')
-      if (cleaned !== value) {
-        this.noticeForm.endDate = cleaned
-      }
-    },
-
-    /**
-     * 格式化结束日期
-     */
-    formatEndDate() {
-      const date = this.noticeForm.endDate
-      if (date && date.length === 8 && !date.includes('-')) {
-        // 如果是8位数字，格式化为YYYY-MM-DD
-        this.noticeForm.endDate = `${date.slice(0, 4)}-${date.slice(4, 6)}-${date.slice(6, 8)}`
-      }
-    },
-
-    /**
-     * 验证结束时间格式
-     */
-    validateEndTime(e) {
-      const value = e.target?.value || e.detail?.value || ''
-      // 只允许输入数字和冒号
-      const cleaned = value.replace(/[^\d:]/g, '')
-      if (cleaned !== value) {
-        this.noticeForm.endTime = cleaned
-      }
-    },
-
-    /**
-     * 格式化结束时间
-     */
-    formatEndTime() {
-      const time = this.noticeForm.endTime
-      if (time && time.length === 4 && !time.includes(':')) {
-        // 如果是4位数字，格式化为HH:MM
-        this.noticeForm.endTime = `${time.slice(0, 2)}:${time.slice(2, 4)}`
-      }
-    },
-
-    /**
-     * 格式化日期字符串为ISO格式
-     */
-    formatDateString(dateStr) {
-      if (!dateStr) return null
-      
-      // 如果已经是YYYY-MM-DD格式，直接返回
-      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-        return dateStr
-      }
-      
-      // 如果是8位数字，格式化为YYYY-MM-DD
-      if (/^\d{8}$/.test(dateStr)) {
-        return `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`
-      }
-      
-      // 尝试解析其他格式，使用TimeUtils确保iOS兼容性
-      try {
-        const date = TimeUtils.createDate(dateStr)
-        if (date) {
-          return TimeUtils.formatDate(dateStr)
-        }
-      } catch (e) {
-        console.warn('日期格式解析失败:', dateStr)
-      }
-      
-      return null
-    },
-
-    /**
-     * 格式化时间字符串为HH:MM格式
-     */
-    formatTimeString(timeStr) {
-      if (!timeStr) return null
-      
-      // 如果已经是HH:MM格式，直接返回
-      if (/^\d{2}:\d{2}$/.test(timeStr)) {
-        return timeStr
-      }
-      
-      // 如果是4位数字，格式化为HH:MM
-      if (/^\d{4}$/.test(timeStr)) {
-        return `${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)}`
-      }
-      
-      // 尝试解析其他格式，使用TimeUtils确保iOS兼容性
-      try {
-        const time = TimeUtils.createDate(`2000-01-01T${timeStr}`)
-        if (time) {
-          return TimeUtils.formatTime(`2000-01-01T${timeStr}`, 'HH:mm')
-        }
-      } catch (e) {
-        console.warn('时间格式解析失败:', timeStr)
-      }
-      
-      return null
-    },
-
-
-    /**
-     * 获取开始时间显示文本
-     */
-    getStartTimeDisplay() {
-      if (this.noticeForm.startDate && this.noticeForm.startTime) {
-        return `${this.noticeForm.startDate} ${this.noticeForm.startTime}`
-      } else if (this.noticeForm.startDate) {
-        return `${this.noticeForm.startDate} 未选择时间`
-      } else {
-        return '选择开始时间'
-      }
-    },
-
-    /**
-     * 获取结束时间显示文本
-     */
-    getEndTimeDisplay() {
-      if (this.noticeForm.endDate && this.noticeForm.endTime) {
-        return `${this.noticeForm.endDate} ${this.noticeForm.endTime}`
-      } else if (this.noticeForm.endDate) {
-        return `${this.noticeForm.endDate} 未选择时间`
-      } else {
-        return '选择结束时间'
-      }
-    },
 
     /**
      * 获取类型文本
@@ -1331,6 +1090,52 @@ export default {
     },
 
     /**
+     * 时间段类型变化处理
+     */
+    onTimeRangeTypeChange() {
+      if (this.noticeForm.timeRangeType === 'permanent') {
+        // 切换到永久公告，清空日期
+        this.noticeForm.startDate = ''
+        this.noticeForm.endDate = ''
+      }
+    },
+
+    /**
+     * 开始日期变化
+     */
+    onStartDateChange(e) {
+      this.noticeForm.startDate = e.detail.value
+      this.validateDateRange()
+    },
+
+    /**
+     * 结束日期变化
+     */
+    onEndDateChange(e) {
+      this.noticeForm.endDate = e.detail.value
+      this.validateDateRange()
+    },
+
+    /**
+     * 验证日期范围
+     */
+    validateDateRange() {
+      if (this.noticeForm.startDate && this.noticeForm.endDate) {
+        const startDate = new Date(this.noticeForm.startDate)
+        const endDate = new Date(this.noticeForm.endDate)
+        
+        if (startDate > endDate) {
+          uni.showToast({
+            title: '开始日期不能晚于结束日期',
+            icon: 'none'
+          })
+          // 清空结束日期
+          this.noticeForm.endDate = ''
+        }
+      }
+    },
+
+    /**
      * 格式化时间，使用TimeUtils确保iOS兼容性
      */
     formatTime(time) {
@@ -1338,6 +1143,35 @@ export default {
       
       // 使用TimeUtils格式化时间，确保iOS兼容性
       return TimeUtils.formatUTCTime(time, 'datetime')
+    },
+
+    /**
+     * 格式化公告时间段显示
+     */
+    formatNoticeTimeRange(startTime, endTime) {
+      if (!startTime && !endTime) {
+        return '永久有效'
+      }
+      
+      const start = startTime ? TimeUtils.createDate(startTime) : null
+      const end = endTime ? TimeUtils.createDate(endTime) : null
+      
+      if (start && end) {
+        const startStr = TimeUtils.formatDate(startTime, 'YYYY-MM-DD')
+        const endStr = TimeUtils.formatDate(endTime, 'YYYY-MM-DD')
+        
+        if (startStr === endStr) {
+          return startStr // 同一天
+        } else {
+          return `${startStr} 至 ${endStr}`
+        }
+      } else if (start) {
+        return `从 ${TimeUtils.formatDate(startTime, 'YYYY-MM-DD')} 开始`
+      } else if (end) {
+        return `到 ${TimeUtils.formatDate(endTime, 'YYYY-MM-DD')} 结束`
+      }
+      
+      return '永久有效'
     }
   }
 }
@@ -1890,6 +1724,66 @@ export default {
   color: #333;
   margin-bottom: 10rpx;
   display: block;
+}
+
+/* 确保表单元素正确显示 */
+.form-group input[type="radio"],
+.form-group input[type="checkbox"] {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8rpx;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 50%;
+  background: white;
+  position: relative;
+}
+
+.form-group input[type="checkbox"] {
+  border-radius: 4rpx;
+}
+
+.form-group input[type="radio"]:checked {
+  border-color: #667eea;
+  background: #667eea;
+}
+
+.form-group input[type="radio"]:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 12rpx;
+  height: 12rpx;
+  border-radius: 50%;
+  background: white;
+}
+
+.form-group input[type="checkbox"]:checked {
+  border-color: #667eea;
+  background: #667eea;
+}
+
+.form-group input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 20rpx;
+  font-weight: bold;
+}
+
+.form-group label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
 }
 
 .form-input {
@@ -2654,6 +2548,135 @@ export default {
   width: 32rpx;
   height: 32rpx;
   margin: 0;
+  accent-color: #667eea;
+}
+
+/* 单选框样式 */
+.status-options {
+  display: flex;
+  gap: 30rpx;
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 26rpx;
+  color: #333;
+  cursor: pointer;
+}
+
+.status-option input[type="radio"] {
+  width: 32rpx;
+  height: 32rpx;
+  margin: 0;
+  accent-color: #667eea;
+}
+
+/* 时间段设置样式 */
+.time-range-section {
+  margin-top: 16rpx;
+}
+
+.time-range-options {
+  display: flex;
+  gap: 30rpx;
+  margin-bottom: 20rpx;
+}
+
+.time-option {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 26rpx;
+  color: #333;
+  cursor: pointer;
+}
+
+.time-option input[type="radio"] {
+  width: 32rpx;
+  height: 32rpx;
+  margin: 0;
+  accent-color: #667eea;
+}
+
+.time-range-inputs {
+  background: #f8f9fa;
+  border: 1rpx solid #e9ecef;
+  border-radius: 12rpx;
+  padding: 20rpx;
+}
+
+.date-input-group {
+  display: flex;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.date-input-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.date-label {
+  font-size: 24rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.date-picker {
+  width: 100%;
+}
+
+.date-picker-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  border: 1rpx solid #e9ecef;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #333;
+  background: white;
+  min-height: 60rpx;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+}
+
+.date-picker-display:active {
+  border-color: #667eea;
+  background: #f8f9ff;
+}
+
+.date-picker-display text:first-child {
+  flex: 1;
+  color: #333;
+}
+
+.date-picker-display text:last-child {
+  color: #999;
+  font-size: 20rpx;
+}
+
+.time-hint {
+  font-size: 22rpx;
+  color: #999;
+  line-height: 1.4;
+  text-align: center;
+}
+
+/* 公告时间段显示样式 */
+.notice-time-range {
+  font-size: 22rpx;
+  color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.1);
+  padding: 4rpx 8rpx;
+  border-radius: 8rpx;
+  white-space: nowrap;
+  margin-top: 8rpx;
+  display: inline-block;
 }
 
 @media (max-width: 600rpx) {
@@ -2666,18 +2689,14 @@ export default {
     padding: 20rpx;
   }
   
-  .time-picker-group {
-    gap: 20rpx;
+  .date-input-group {
+    flex-direction: column;
+    gap: 15rpx;
   }
   
-  .time-picker-item {
-    gap: 12rpx;
-  }
-  
-  .time-picker {
-    padding: 16rpx;
-    font-size: 24rpx;
-    min-height: 50rpx;
+  .time-range-options {
+    flex-direction: column;
+    gap: 15rpx;
   }
   
   .form-group {

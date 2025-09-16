@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表单显示测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 30px;
+        }
+        .form-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 10px;
+            display: block;
+        }
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        .status-options {
+            display: flex;
+            gap: 30px;
+        }
+        .status-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+        }
+        .status-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            accent-color: #007bff;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 20px;
+        }
+        .checkbox-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+        }
+        .checkbox-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            accent-color: #007bff;
+        }
+        .time-range-options {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .time-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+            color: #333;
+            cursor: pointer;
+        }
+        .time-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            margin: 0;
+            accent-color: #007bff;
+        }
+        .time-range-inputs {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        .date-input-group {
+            display: flex;
+            gap: 15px;
+        }
+        .date-input-item {
+            flex: 1;
+        }
+        .date-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>表单显示测试</h1>
+        
+        <form id="testForm">
+            <div class="form-group">
+                <label class="form-label">公告标题</label>
+                <input type="text" class="form-input" name="title" placeholder="请输入公告标题">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">公告内容</label>
+                <textarea class="form-textarea" name="content" placeholder="请输入公告内容"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">发布状态</label>
+                <div class="status-options">
+                    <label class="status-option">
+                        <input type="radio" name="status" value="published" checked>
+                        <span>立即发布</span>
+                    </label>
+                    <label class="status-option">
+                        <input type="radio" name="status" value="draft">
+                        <span>保存草稿</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">置顶设置</label>
+                <div class="checkbox-group">
+                    <label class="checkbox-option">
+                        <input type="checkbox" name="isSticky">
+                        <span>置顶显示</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">生效时间段</label>
+                <div class="time-range-options">
+                    <label class="time-option">
+                        <input type="radio" name="timeRangeType" value="permanent" checked>
+                        <span>永久公告</span>
+                    </label>
+                    <label class="time-option">
+                        <input type="radio" name="timeRangeType" value="temporary">
+                        <span>临时公告</span>
+                    </label>
+                </div>
+                
+                <div class="time-range-inputs" id="timeRangeInputs" style="display: none;">
+                    <div class="date-input-group">
+                        <div class="date-input-item">
+                            <label class="form-label">开始日期</label>
+                            <input type="date" class="date-input" name="startDate">
+                        </div>
+                        <div class="date-input-item">
+                            <label class="form-label">结束日期</label>
+                            <input type="date" class="date-input" name="endDate">
+                        </div>
+                    </div>
+                    <div style="font-size: 12px; color: #666; margin-top: 10px;">
+                        不填写时间则创建永久公告，系统会自动处理时间范围
+                    </div>
+                </div>
+            </div>
+            
+            <button type="button" class="btn" onclick="testForm()">测试表单</button>
+            <div class="result" id="result"></div>
+        </form>
+    </div>
+
+    <script>
+        // 时间段类型切换
+        document.querySelectorAll('input[name="timeRangeType"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const timeRangeInputs = document.getElementById('timeRangeInputs');
+                if (this.value === 'temporary') {
+                    timeRangeInputs.style.display = 'block';
+                } else {
+                    timeRangeInputs.style.display = 'none';
+                }
+            });
+        });
+
+        function testForm() {
+            const formData = new FormData(document.getElementById('testForm'));
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                if (key === 'isSticky') {
+                    data[key] = true;
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            // 处理复选框
+            data.isSticky = document.querySelector('input[name="isSticky"]').checked;
+            
+            document.getElementById('result').textContent = 
+                '表单数据:\n' + JSON.stringify(data, null, 2);
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置默认日期
+            const today = new Date().toISOString().split('T')[0];
+            document.querySelector('input[name="startDate"]').value = today;
+            
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.querySelector('input[name="endDate"]').value = tomorrow.toISOString().split('T')[0];
+        });
+    </script>
+</body>
+</html>

@@ -503,13 +503,10 @@
       </view>
     </view>
 
-    <!-- 底部导航 -->
-    <BottomNav :currentPage="'/pages/admin/users'" />
   </view>
 </template>
 
 <script>
-import BottomNav from '@/components/BottomNav.vue'
 import UserDetailModal from '@/components/UserDetailModal.vue'
 import UserEditModal from '@/components/UserEditModal.vue'
 import api from '@/utils/api'
@@ -521,7 +518,6 @@ export default {
   name: 'UsersAdmin',
   mixins: [timeMixin],
   components: {
-    BottomNav,
     UserDetailModal,
     UserEditModal,
     UserAvatar,
@@ -1494,9 +1490,6 @@ export default {
 .users-admin-container {
   min-height: 100vh;
   background: #f8f9fa;
-  padding-bottom: 120rpx; /* 为底部导航栏预留空间 */
-  padding-bottom: calc(120rpx + constant(safe-area-inset-bottom));
-  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
 /* 页面头部 */
