@@ -85,7 +85,9 @@ export default {
     // 检查环境
     checkEnvironment() {
       this.isUniApp = typeof uni !== 'undefined'
-      this.isWechatMiniProgram = typeof wx !== 'undefined' && wx.getSystemInfoSync
+      // 检查微信小程序特有的API，使用现代化检测方法
+      this.isWechatMiniProgram = typeof wx !== 'undefined' && 
+                                 (wx.getDeviceInfo || wx.getSystemInfoSync)
     },
     
     // 生成二维码

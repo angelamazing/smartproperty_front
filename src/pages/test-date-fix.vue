@@ -125,8 +125,17 @@ export default {
       // 获取环境信息
       if (typeof wx !== 'undefined') {
         try {
-          const systemInfo = wx.getSystemInfoSync()
-          this.environmentInfo = `${systemInfo.platform} ${systemInfo.system}`
+          // 优先使用新的设备信息API
+          if (wx.getDeviceInfo) {
+            const deviceInfo = wx.getDeviceInfo()
+            this.environmentInfo = `${deviceInfo.platform} ${deviceInfo.system || 'unknown'}`
+          } else if (wx.getSystemInfoSync) {
+            console.warn('使用已弃用的wx.getSystemInfoSync，建议升级到wx.getDeviceInfo')
+            const systemInfo = wx.getSystemInfoSync()
+            this.environmentInfo = `${systemInfo.platform} ${systemInfo.system}`
+          } else {
+            this.environmentInfo = '微信小程序 未知环境'
+          }
         } catch (error) {
           this.environmentInfo = '微信小程序'
         }

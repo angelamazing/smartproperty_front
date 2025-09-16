@@ -125,9 +125,16 @@ export function installGlobalDateFix() {
     // 替换全局的 Date 构造函数
     globalEnv.Date = IOSCompatibleDateConstructor;
     
-    // 确保在不同环境下都能工作
+    // 确保在不同环境下都能工作 - 适配微信小程序
     if (typeof window !== 'undefined') {
       window.Date = IOSCompatibleDateConstructor;
+    } else {
+      // 微信小程序环境，尝试直接替换
+      try {
+        Date = IOSCompatibleDateConstructor;
+      } catch (error) {
+        console.warn('⚠️ 无法在微信小程序中直接替换Date:', error);
+      }
     }
     if (typeof global !== 'undefined') {
       global.Date = IOSCompatibleDateConstructor;
@@ -152,6 +159,13 @@ export function uninstallGlobalDateFix() {
     }
     if (typeof window !== 'undefined') {
       window.Date = OriginalDate;
+    } else {
+      // 微信小程序环境，尝试直接恢复
+      try {
+        Date = OriginalDate;
+      } catch (error) {
+        console.warn('⚠️ 无法在微信小程序中直接恢复Date:', error);
+      }
     }
     if (typeof global !== 'undefined') {
       global.Date = OriginalDate;
@@ -172,8 +186,20 @@ export function isIOSEnvironment() {
   // 微信小程序环境检查
   if (typeof wx !== 'undefined') {
     try {
-      const systemInfo = wx.getSystemInfoSync();
-      return systemInfo.platform === 'ios';
+      // 优先使用新的设备信息API
+      if (wx.getDeviceInfo) {
+        const deviceInfo = wx.getDeviceInfo();
+        return deviceInfo.platform === 'ios';
+      }
+      
+      // 兜底使用旧API
+      if (wx.getSystemInfoSync) {
+        console.warn('使用已弃用的wx.getSystemInfoSync，建议升级到wx.getDeviceInfo');
+        const systemInfo = wx.getSystemInfoSync();
+        return systemInfo.platform === 'ios';
+      }
+      
+      return false;
     } catch (error) {
       // 如果获取系统信息失败，默认不是 iOS
       return false;

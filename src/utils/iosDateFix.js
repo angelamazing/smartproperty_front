@@ -213,8 +213,25 @@ export class IOSDateFix {
         }
       });
       
-      // 替换全局Date
-      window.Date = PatchedDate;
+      // 替换全局Date - 适配微信小程序环境
+      if (typeof window !== 'undefined') {
+        window.Date = PatchedDate;
+      } else {
+        // 微信小程序环境
+        try {
+          Date = PatchedDate;
+        } catch (error) {
+          console.warn('⚠️ 无法在微信小程序中替换Date:', error);
+        }
+      }
+      
+      // 确保其他全局对象也设置
+      if (typeof globalThis !== 'undefined') {
+        globalThis.Date = PatchedDate;
+      }
+      if (typeof global !== 'undefined') {
+        global.Date = PatchedDate;
+      }
       
       console.log('✅ iOS Date 兼容性补丁已应用');
     }
@@ -224,9 +241,34 @@ export class IOSDateFix {
    * 恢复原始Date构造函数
    */
   static restoreGlobalDate() {
+    let restored = false;
+    
     if (typeof window !== 'undefined' && window.OriginalDate) {
       window.Date = window.OriginalDate;
       delete window.OriginalDate;
+      restored = true;
+    }
+    
+    if (typeof globalThis !== 'undefined' && globalThis.OriginalDate) {
+      globalThis.Date = globalThis.OriginalDate;
+      if (typeof window === 'undefined') { // 微信小程序环境
+        try {
+          Date = globalThis.OriginalDate;
+        } catch (error) {
+          console.warn('⚠️ 无法在微信小程序中恢复Date:', error);
+        }
+      }
+      delete globalThis.OriginalDate;
+      restored = true;
+    }
+    
+    if (typeof global !== 'undefined' && global.OriginalDate) {
+      global.Date = global.OriginalDate;
+      delete global.OriginalDate;
+      restored = true;
+    }
+    
+    if (restored) {
       console.log('✅ 原始 Date 构造函数已恢复');
     }
   }

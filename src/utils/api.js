@@ -226,7 +226,19 @@ const api = {
         url: getBaseUrl() + url,
         filePath: filePath,
         token: token ? '已设置' : '未设置',
-        platform: uni.getSystemInfoSync().platform
+        platform: (() => {
+          try {
+            // 优先使用现代化API
+            if (typeof wx !== 'undefined' && wx.getDeviceInfo) {
+              return wx.getDeviceInfo().platform
+            }
+            // 兜底使用uni-app API
+            return uni.getSystemInfoSync().platform
+          } catch (error) {
+            console.warn('[API] 获取平台信息失败:', error)
+            return 'unknown'
+          }
+        })()
       })
 
       // 检查运行环境

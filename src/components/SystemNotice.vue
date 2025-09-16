@@ -1,6 +1,6 @@
 <template>
   <view class="system-notice" v-if="notice && showNotice">
-    <view class="notice-card" :class="noticeTypeClass" :data-priority="notice.priority" :data-sticky="notice.isSticky">
+    <view class="notice-card" :class="[noticeTypeClass, priorityClass, stickyClass]">
       <view class="notice-header">
         <view class="notice-icon-wrapper">
           <text class="notice-icon">{{ noticeIcon }}</text>
@@ -23,7 +23,7 @@
       <view class="notice-footer" v-if="showFooter">
         <view class="notice-meta">
           <text class="notice-type">{{ getTypeText(notice.type) }}</text>
-          <text class="notice-priority" v-if="notice.priority" :data-priority="notice.priority">{{ getPriorityText(notice.priority) }}</text>
+          <text class="notice-priority" v-if="notice.priority" :class="priorityTextClass">{{ getPriorityText(notice.priority) }}</text>
         </view>
         <view class="notice-actions-footer">
           <button class="action-btn" @click="refreshNotice" v-if="refreshable" title="刷新公告">
@@ -35,6 +35,10 @@
             <text class="action-text">详情</text>
           </button>
         </view>
+      </view>
+      <!-- 置顶标签 -->
+      <view class="sticky-badge" v-if="notice && notice.isSticky">
+        <text class="sticky-text">置顶</text>
       </view>
     </view>
   </view>
@@ -81,6 +85,18 @@ export default {
         success: '✅'
       }
       return iconMap[this.noticeTypeClass] || 'ℹ️'
+    },
+    priorityClass() {
+      if (!this.notice || !this.notice.priority) return ''
+      return `priority-${this.notice.priority}`
+    },
+    stickyClass() {
+      if (!this.notice || !this.notice.isSticky) return ''
+      return 'sticky-notice'
+    },
+    priorityTextClass() {
+      if (!this.notice || !this.notice.priority) return ''
+      return `priority-text-${this.notice.priority}`
     }
   },
   methods: {
@@ -331,28 +347,28 @@ export default {
   font-weight: 600;
 }
 
-/* 不同优先级的颜色 */
-.notice-priority[data-priority="1"] {
+/* 不同优先级的颜色 - 使用类名替代属性选择器 */
+.notice-priority.priority-text-1 {
   color: #10b981;
   background: rgba(16, 185, 129, 0.1);
 }
 
-.notice-priority[data-priority="2"] {
+.notice-priority.priority-text-2 {
   color: #f59e0b;
   background: rgba(245, 158, 11, 0.1);
 }
 
-.notice-priority[data-priority="3"] {
+.notice-priority.priority-text-3 {
   color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
 }
 
-.notice-priority[data-priority="4"] {
+.notice-priority.priority-text-4 {
   color: #dc2626;
   background: rgba(220, 38, 38, 0.1);
 }
 
-.notice-priority[data-priority="5"] {
+.notice-priority.priority-text-5 {
   color: #991b1b;
   background: rgba(153, 27, 27, 0.1);
 }
@@ -406,30 +422,28 @@ export default {
   line-height: 1;
 }
 
-/* 响应式设计 */
-@media (max-width: 750rpx) {
-  .notice-card {
-    padding: 20rpx;
-  }
-  
-  .notice-title {
-    font-size: 30rpx;
-  }
-  
-  .notice-text {
-    font-size: 26rpx;
-  }
-  
-  .notice-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12rpx;
-  }
-  
-  .notice-actions-footer {
-    width: 100%;
-    justify-content: flex-end;
-  }
+/* 小屏幕适配 - 移除@media查询，使用小程序推荐的响应式方案 */
+.notice-card-small {
+  padding: 20rpx;
+}
+
+.notice-title-small {
+  font-size: 30rpx;
+}
+
+.notice-text-small {
+  font-size: 26rpx;
+}
+
+.notice-footer-small {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.notice-actions-footer-small {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 /* 动画效果 */
@@ -448,39 +462,43 @@ export default {
   animation: slideIn 0.3s ease-out;
 }
 
-/* 高优先级公告特殊样式 */
-.notice-card[data-priority="4"],
-.notice-card[data-priority="5"] {
+/* 高优先级公告特殊样式 - 使用类名替代属性选择器 */
+.notice-card.priority-4,
+.notice-card.priority-5 {
   border-left-width: 10rpx;
   animation: pulse 2s infinite;
 }
 
 /* 最高优先级公告更强烈的动画 */
-.notice-card[data-priority="5"] {
+.notice-card.priority-5 {
   border-left-width: 12rpx;
   animation: urgentPulse 1.5s infinite;
 }
 
-/* 置顶公告特殊样式 */
-.notice-card[data-sticky="true"] {
+/* 置顶公告特殊样式 - 使用类名和独立元素替代属性选择器和伪元素 */
+.notice-card.sticky-notice {
   border-left-width: 12rpx;
   background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   box-shadow: 0 6rpx 25rpx rgba(0, 0, 0, 0.15);
   position: relative;
 }
 
-.notice-card[data-sticky="true"]::before {
-  content: '置顶';
+/* 置顶标签样式 */
+.sticky-badge {
   position: absolute;
   top: 16rpx;
   right: 16rpx;
   background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139, 92, 246, 0.3);
+}
+
+.sticky-text {
   color: white;
   font-size: 20rpx;
   padding: 4rpx 12rpx;
-  border-radius: 12rpx;
   font-weight: 600;
-  box-shadow: 0 2rpx 8rpx rgba(139, 92, 246, 0.3);
+  display: block;
 }
 
 @keyframes urgentPulse {

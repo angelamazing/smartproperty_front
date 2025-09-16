@@ -17,14 +17,20 @@
    */
   function isWechatMiniProgramIOS() {
     try {
-      // 检查是否为微信小程序环境
-      if (typeof wx === 'undefined' || !wx.getSystemInfoSync) {
-        return false;
+      // 优先使用新的设备信息API
+      if (typeof wx !== 'undefined' && wx.getDeviceInfo) {
+        const deviceInfo = wx.getDeviceInfo();
+        return deviceInfo.platform === 'ios';
       }
       
-      // 获取系统信息
-      const systemInfo = wx.getSystemInfoSync();
-      return systemInfo.platform === 'ios';
+      // 兜底：检查是否有旧API
+      if (typeof wx !== 'undefined' && wx.getSystemInfoSync) {
+        console.warn('⚠️ 使用已弃用的wx.getSystemInfoSync，建议升级到wx.getDeviceInfo');
+        const systemInfo = wx.getSystemInfoSync();
+        return systemInfo.platform === 'ios';
+      }
+      
+      return false;
     } catch (error) {
       console.warn('⚠️ 无法检测微信小程序 iOS 环境:', error);
       return false;
@@ -194,7 +200,7 @@
         return OriginalDate.parse(converted);
       };
 
-      // 全局替换 Date 构造函数
+      // 全局替换 Date 构造函数 - 适配微信小程序环境
       if (typeof globalThis !== 'undefined') {
         globalThis.Date = createIOSCompatibleDate;
       }
@@ -202,8 +208,23 @@
         global.Date = createIOSCompatibleDate;
       }
 
-      // 最重要：替换当前作用域的 Date
-      window.Date = createIOSCompatibleDate;
+      // 微信小程序环境中的 Date 替换
+      if (typeof window !== 'undefined') {
+        // Web环境或支持window的环境
+        window.Date = createIOSCompatibleDate;
+      } else {
+        // 微信小程序环境，直接在当前上下文替换
+        try {
+          // 在微信小程序中，直接替换全局Date
+          Date = createIOSCompatibleDate;
+        } catch (replaceError) {
+          console.warn('⚠️ 无法在微信小程序中直接替换Date，使用备选方案');
+          // 备选方案：确保其他全局对象已设置
+          if (typeof globalThis !== 'undefined') {
+            globalThis.Date = createIOSCompatibleDate;
+          }
+        }
+      }
       
       console.log('✅ 早期 iOS 日期兼容性修复安装成功');
       console.log('🎯 现在 vendor.js 中的 new Date() 调用将自动兼容 iOS');

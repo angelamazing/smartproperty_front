@@ -103,7 +103,9 @@ export default {
     checkEnvironment() {
       this.isWeb = typeof window !== 'undefined' && typeof document !== 'undefined'
       this.isUniApp = typeof uni !== 'undefined'
-      this.isWechatMiniProgram = typeof wx !== 'undefined' && wx.getSystemInfoSync
+      // 检查微信小程序特有的API，使用现代化检测方法
+      this.isWechatMiniProgram = typeof wx !== 'undefined' && 
+                                 (wx.getDeviceInfo || wx.getSystemInfoSync)
     },
     
     // 计算尺寸

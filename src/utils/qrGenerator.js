@@ -8,7 +8,9 @@
 
 // 检查是否在微信小程序环境
 const isWechatMiniProgram = () => {
-  return typeof wx !== 'undefined' && wx.getSystemInfoSync
+  // 检查微信小程序特有的API，使用现代化检测方法
+  return typeof wx !== 'undefined' && 
+         (wx.getDeviceInfo || wx.getSystemInfoSync)
 }
 
 // 生成简单的二维码内容（用于调试）

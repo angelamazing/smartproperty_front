@@ -151,8 +151,22 @@ export default {
       // 检查环境
       try {
         if (typeof wx !== 'undefined') {
-          const systemInfo = wx.getSystemInfoSync()
-          this.fixStatus.environment = `微信小程序 ${systemInfo.platform}`
+          try {
+            // 优先使用新的设备信息API
+            if (wx.getDeviceInfo) {
+              const deviceInfo = wx.getDeviceInfo()
+              this.fixStatus.environment = `微信小程序 ${deviceInfo.platform}`
+            } else if (wx.getSystemInfoSync) {
+              console.warn('使用已弃用的wx.getSystemInfoSync，建议升级到wx.getDeviceInfo')
+              const systemInfo = wx.getSystemInfoSync()
+              this.fixStatus.environment = `微信小程序 ${systemInfo.platform}`
+            } else {
+              this.fixStatus.environment = '微信小程序 未知平台'
+            }
+          } catch (error) {
+            console.error('获取微信小程序环境信息失败:', error)
+            this.fixStatus.environment = '微信小程序 检测失败'
+          }
         } else {
           this.fixStatus.environment = '浏览器环境'
         }

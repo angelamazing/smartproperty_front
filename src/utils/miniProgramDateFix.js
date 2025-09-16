@@ -11,7 +11,9 @@ import { IOSCompatibleDate } from './iosCompatibleDate.js';
  * 检查是否为微信小程序环境
  */
 export function isMiniProgramEnvironment() {
-  return typeof wx !== 'undefined' && wx.getSystemInfoSync;
+  // 优先检查新API
+  return typeof wx !== 'undefined' && 
+         (wx.getDeviceInfo || wx.getSystemInfoSync);
 }
 
 /**
@@ -21,8 +23,20 @@ export function isMiniProgramIOS() {
   if (!isMiniProgramEnvironment()) return false;
   
   try {
-    const systemInfo = wx.getSystemInfoSync();
-    return systemInfo.platform === 'ios';
+    // 优先使用新的设备信息API
+    if (wx.getDeviceInfo) {
+      const deviceInfo = wx.getDeviceInfo();
+      return deviceInfo.platform === 'ios';
+    }
+    
+    // 兜底使用旧API
+    if (wx.getSystemInfoSync) {
+      console.warn('使用已弃用的wx.getSystemInfoSync，建议升级到wx.getDeviceInfo');
+      const systemInfo = wx.getSystemInfoSync();
+      return systemInfo.platform === 'ios';
+    }
+    
+    return false;
   } catch (error) {
     console.warn('⚠️ 无法获取系统信息:', error);
     return false;

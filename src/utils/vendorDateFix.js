@@ -43,14 +43,35 @@ export function setupVendorDateFix() {
  * 确保所有 new Date() 调用都经过 iOS 兼容性处理
  */
 function patchGlobalDateConstructor() {
-  if (typeof window === 'undefined' || !window.Date) {
-    console.warn('⚠️ 无法访问全局 Date 对象，跳过修补');
+  // 检查是否有可用的Date对象进行修补
+  let globalDate = null;
+  
+  if (typeof window !== 'undefined' && window.Date) {
+    globalDate = window.Date;
+  } else if (typeof globalThis !== 'undefined' && globalThis.Date) {
+    globalDate = globalThis.Date;
+  } else if (typeof global !== 'undefined' && global.Date) {
+    globalDate = global.Date;
+  } else if (typeof Date !== 'undefined') {
+    globalDate = Date;
+  }
+  
+  if (!globalDate) {
+    console.warn('⚠️ 无法找到全局 Date 对象，跳过修补');
     return;
   }
   
   // 保存原始 Date 构造函数
-  const OriginalDate = window.Date;
-  window.OriginalDate = OriginalDate;
+  const OriginalDate = globalDate;
+  
+  // 在可用的全局对象中保存原始Date引用
+  if (typeof window !== 'undefined') {
+    window.OriginalDate = OriginalDate;
+  } else if (typeof globalThis !== 'undefined') {
+    globalThis.OriginalDate = OriginalDate;
+  } else if (typeof global !== 'undefined') {
+    global.OriginalDate = OriginalDate;
+  }
   
   // 创建增强的 Date 构造函数
   function EnhancedDate(...args) {
@@ -95,8 +116,23 @@ function patchGlobalDateConstructor() {
     }
   }
   
-  // 替换全局 Date
-  window.Date = EnhancedDate;
+  // 替换全局 Date - 适配不同环境
+  if (typeof window !== 'undefined') {
+    window.Date = EnhancedDate;
+  }
+  if (typeof globalThis !== 'undefined') {
+    globalThis.Date = EnhancedDate;
+  }
+  if (typeof global !== 'undefined') {
+    global.Date = EnhancedDate;
+  }
+  
+  // 微信小程序环境，直接替换
+  try {
+    Date = EnhancedDate;
+  } catch (error) {
+    console.warn('⚠️ 无法直接替换Date构造函数:', error);
+  }
   
   console.log('✅ 全局 Date 构造函数已增强');
 }
@@ -207,13 +243,39 @@ function setupVendorErrorListener() {
  * 用于调试或紧急情况下的回滚
  */
 export function restoreOriginalDate() {
+  let restored = false;
+  
+  // 尝试从不同的全局对象中恢复原始Date
   if (typeof window !== 'undefined' && window.OriginalDate) {
     window.Date = window.OriginalDate;
     delete window.OriginalDate;
-    console.log('✅ 已恢复原始 Date 构造函数');
-    return true;
+    restored = true;
   }
-  return false;
+  
+  if (typeof globalThis !== 'undefined' && globalThis.OriginalDate) {
+    globalThis.Date = globalThis.OriginalDate;
+    if (typeof window === 'undefined') { // 微信小程序环境
+      try {
+        Date = globalThis.OriginalDate;
+      } catch (error) {
+        console.warn('⚠️ 无法在微信小程序中恢复Date:', error);
+      }
+    }
+    delete globalThis.OriginalDate;
+    restored = true;
+  }
+  
+  if (typeof global !== 'undefined' && global.OriginalDate) {
+    global.Date = global.OriginalDate;
+    delete global.OriginalDate;
+    restored = true;
+  }
+  
+  if (restored) {
+    console.log('✅ 已恢复原始 Date 构造函数');
+  }
+  
+  return restored;
 }
 
 /**
