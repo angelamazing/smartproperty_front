@@ -2,568 +2,363 @@
   <view class="notices-container">
     <!-- 页面头部 -->
     <view class="page-header">
-      <view class="header-content">
-        <view class="header-title">
-          <text class="title-icon">📢</text>
-          公告管理
-        </view>
-        <view class="header-subtitle">管理系统公告，包括发布、编辑、删除等操作</view>
-      </view>
-      <view class="header-stats" v-if="notices.length > 0">
-        <view class="stat-item">
-          <text class="stat-number">{{ notices.length }}</text>
-          <text class="stat-label">总公告</text>
-        </view>
-        <view class="stat-item">
-          <text class="stat-number">{{ selectedNotices.length }}</text>
-          <text class="stat-label">已选择</text>
-        </view>
-      </view>
+      <view class="header-title">公告管理</view>
+      <view class="header-subtitle">管理系统公告，支持时间段公告，只需填写日期即可</view>
     </view>
 
     <!-- 操作工具栏 -->
     <view class="toolbar">
-      <view class="toolbar-left">
-        <button class="action-btn primary" @click="createNotice">
-          <text class="btn-icon">➕</text>
-          <text>发布公告</text>
-        </button>
-        <button class="action-btn secondary" @click="refreshNotices" :disabled="loading">
-          <text class="btn-icon" :class="{ spinning: loading }">🔄</text>
-          <text>{{ loading ? '刷新中...' : '刷新' }}</text>
-        </button>
-        <button class="action-btn danger" @click="batch删除" v-if="selectedNotices.length > 0">
-          <text class="btn-icon">🗑️</text>
-          <text>批量删除 ({{ selectedNotices.length }})</text>
-        </button>
+      <!-- 搜索和筛选 -->
+      <view class="search-section">
+        <input 
+          class="search-input" 
+          v-model="searchKeyword" 
+          placeholder="搜索公告标题、内容"
+          @input="onSearchInput"
+          @confirm="searchNotices"
+        />
+        <button class="search-btn" @click="searchNotices">🔍</button>
       </view>
-      
-      <view class="toolbar-right">
-        <view class="search-box">
-          <text class="search-icon">🔍</text>
-          <input 
-            class="search-input" 
-            v-model="searchKeyword" 
-            placeholder="搜索公告标题或内容..."
-            @input="onSearch"
-          />
-          <button v-if="searchKeyword" class="clear-search" @click="clearSearch">✕</button>
-        </view>
-        
+
+      <view class="filter-section">
         <picker 
-          class="filter-picker type-picker" 
+          class="filter-picker" 
           :value="selectedTypeIndex" 
-          :range="noticeTypes" 
+          :range="typeOptions" 
           range-key="name"
           @change="onTypeChange"
         >
-          <view class="picker-content">
-            <text class="picker-icon">📋</text>
-            <text class="picker-text">{{ noticeTypes[selectedTypeIndex].name }}</text>
+          <view class="picker-text">
+            {{ selectedTypeIndex >= 0 ? typeOptions[selectedTypeIndex].name : '全部类型' }}
           </view>
         </picker>
-        
+
         <picker 
-          class="filter-picker status-picker" 
+          class="filter-picker" 
           :value="selectedStatusIndex" 
-          :range="statusTypes" 
+          :range="statusOptions" 
           range-key="name"
           @change="onStatusChange"
         >
-          <view class="picker-content">
-            <text class="picker-icon">📊</text>
-            <text class="picker-text">{{ statusTypes[selectedStatusIndex].name }}</text>
+          <view class="picker-text">
+            {{ selectedStatusIndex >= 0 ? statusOptions[selectedStatusIndex].name : '全部状态' }}
           </view>
         </picker>
+
+        <picker 
+          class="filter-picker" 
+          :value="selectedTimeTypeIndex" 
+          :range="timeTypeOptions" 
+          range-key="name"
+          @change="onTimeTypeChange"
+        >
+          <view class="picker-text">
+            {{ selectedTimeTypeIndex >= 0 ? timeTypeOptions[selectedTimeTypeIndex].name : '时间类型' }}
+          </view>
+        </picker>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="action-buttons">
+        <button class="action-btn primary" @click="openCreateModal">
+          <text class="btn-icon">+</text>
+          <text>新建公告</text>
+        </button>
+        <button class="action-btn secondary" @click="showBatchActions" :disabled="!hasSelectedNotices">
+          批量操作 ({{ selectedNotices.length }})
+        </button>
       </view>
     </view>
 
     <!-- 公告列表 -->
-    <view class="notices-list">
-      <view v-if="loading" class="loading-container">
+    <view class="notices-content">
+      <view v-if="loading" class="loading-state">
         <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
+        <text>加载中...</text>
       </view>
-      
+
       <view v-else-if="notices.length === 0" class="empty-state">
         <text class="empty-icon">📢</text>
-        <text class="empty-title">暂无公告</text>
-        <text class="empty-desc">点击上方按钮发布第一条公告</text>
+        <text class="empty-text">暂无公告</text>
+        <text class="empty-hint">点击"新建公告"开始添加</text>
       </view>
-      
-      <view v-else class="notice-cards">
-        <view 
-          v-for="notice in filteredNotices" 
-          :key="notice._id" 
-          class="notice-card"
-          :class="[
-            notice.type, 
-            { 
-              selected: selectedNotices.includes(notice._id),
-              sticky: notice.isSticky
-            }
-          ]"
-          @click="toggleNoticeSelection(notice._id)"
-        >
-          <view class="notice-header">
-            <view class="notice-selection">
-              <checkbox 
-                :checked="selectedNotices.includes(notice._id)"
-                @change="toggleNoticeSelection(notice._id)"
-                @click.stop
-              />
-            </view>
-            
-            <view class="notice-badges">
-              <view class="notice-type-badge" :class="notice.type">
-                <text>{{ getTypeText(notice.type) }}</text>
-              </view>
-              
-              <view class="notice-priority" v-if="notice.priority">
-                <text class="priority-text" :class="'priority-' + notice.priority">
-                  {{ getPriorityText(notice.priority) }}
-                </text>
-              </view>
-            </view>
-            
-            <view class="notice-sticky-badge" v-if="notice.isSticky">
-              <text class="sticky-text">置顶</text>
-            </view>
-            
-            <view class="notice-actions">
-              <button class="action-btn-small" @click.stop="editNotice(notice)">
-                <text>编辑</text>
-              </button>
-              <button class="action-btn-small" @click.stop="toggleNoticeStatus(notice)" v-if="notice.status === 'draft'">
-                <text>发布</text>
-              </button>
-              <button class="action-btn-small" @click.stop="toggleNoticeStatus(notice)" v-else-if="notice.status === 'published'">
-                <text>取消发布</text>
-              </button>
-              <button class="action-btn-small" @click.stop="archiveNotice(notice)" v-if="notice.status === 'published'">
-                <text>归档</text>
-              </button>
-              <button class="action-btn-small danger" @click.stop="deleteNotice(notice)">
-                <text>删除</text>
-              </button>
-            </view>
-          </view>
-          
-          <view class="notice-content">
-            <text class="notice-title">{{ notice.title }}</text>
-            <text class="notice-text">{{ notice.content }}</text>
-          </view>
-          
-          <view class="notice-footer">
-            <view class="notice-meta">
-              <text class="notice-time">{{ $formatTime(notice.createTime) }}</text>
-              <text class="notice-publisher" v-if="notice.publisherName">
-                发布者: {{ notice.publisherName }}
-              </text>
-              <text class="notice-views" v-if="notice.viewCount > 0">
-                查看: {{ notice.viewCount }}
-              </text>
-              <text class="notice-time-range" v-if="notice.startTime || notice.endTime">
-                生效时间: {{ formatNoticeTimeRange(notice.startTime, notice.endTime) }}
-              </text>
-            </view>
-            <view class="notice-status-info">
-              <text class="notice-status" :class="notice.status">
-                {{ getStatusText(notice.status) }}
-              </text>
-            </view>
-          </view>
-        </view>
-      </view>
-    </view>
 
-    <!-- 发布/编辑公告弹窗 -->
-    <view v-if="showNoticeModal" class="modal-overlay" @click="closeNoticeModal">
-      <view class="modal-content" @click.stop>
-        <view class="modal-header">
-          <text class="modal-title">{{ isEdit ? '编辑公告' : '发布公告' }}</text>
-          <button class="close-btn" @click="closeNoticeModal">×</button>
+      <view v-else class="notices-list">
+        <!-- 列表头部 -->
+        <view class="list-header">
+          <checkbox 
+            class="select-all-checkbox" 
+            :checked="isAllSelected"
+            @change="toggleSelectAll"
+            value="all"
+          />
+          <text class="header-label">全选</text>
+          <text class="notice-count">共 {{ total }} 条公告</text>
         </view>
-        
-        <view class="modal-body">
-          <view class="form-group">
-            <text class="form-label">公告标题 *</text>
-            <input 
-              class="form-input" 
-              v-model="noticeForm.title" 
-              placeholder="请输入公告标题"
-              maxlength="200"
+
+        <!-- 公告列表项 -->
+        <view 
+          v-for="notice in notices" 
+          :key="notice._id || notice.id"
+          class="notice-item"
+          :class="{ selected: selectedNotices.includes(notice._id || notice.id) }"
+        >
+          <!-- 选择框 -->
+          <view class="notice-selector">
+            <checkbox 
+              :value="notice._id || notice.id"
+              :checked="selectedNotices.includes(notice._id || notice.id)"
+              @change="onNoticeSelect"
+              :data-id="notice._id || notice.id"
             />
-            <text class="char-count">{{ noticeForm.title.length }}/200</text>
           </view>
-          
-          <view class="form-group">
-            <text class="form-label">公告类型 *</text>
-            <view class="form-picker" @click="showTypePicker = true">
-              <text>{{ noticeTypes[noticeForm.typeIndex].name }}</text>
-              <text class="picker-arrow">▼</text>
-            </view>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">优先级</text>
-            <view class="form-picker" @click="showPriorityPicker = true">
-              <text>{{ priorityTypes[noticeForm.priorityIndex].name }}</text>
-              <text class="picker-arrow">▼</text>
-            </view>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">公告内容 *</text>
-            <textarea 
-              class="form-textarea" 
-              v-model="noticeForm.content" 
-              placeholder="请输入公告内容"
-            />
-            <text class="char-count">{{ noticeForm.content.length }}</text>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">发布状态</text>
-            <view class="status-options">
-              <label class="status-option">
-                <input 
-                  type="radio" 
-                  value="published" 
-                  v-model="noticeForm.status"
-                />
-                <text>立即发布</text>
-              </label>
-              <label class="status-option">
-                <input 
-                  type="radio" 
-                  value="draft" 
-                  v-model="noticeForm.status"
-                />
-                <text>保存草稿</text>
-              </label>
-            </view>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">置顶设置</text>
-            <view class="checkbox-group">
-              <label class="checkbox-option">
-                <input 
-                  type="checkbox" 
-                  v-model="noticeForm.isSticky"
-                />
-                <text>置顶显示</text>
-              </label>
-            </view>
-          </view>
-          
-          <view class="form-group">
-            <text class="form-label">生效时间段</text>
-            <view class="time-range-section">
-              <view class="time-range-options">
-                <label class="time-option">
-                  <input 
-                    type="radio" 
-                    value="permanent" 
-                    v-model="noticeForm.timeRangeType"
-                    @change="onTimeRangeTypeChange"
-                  />
-                  <text>永久公告</text>
-                </label>
-                <label class="time-option">
-                  <input 
-                    type="radio" 
-                    value="temporary" 
-                    v-model="noticeForm.timeRangeType"
-                    @change="onTimeRangeTypeChange"
-                  />
-                  <text>临时公告</text>
-                </label>
-              </view>
-              
-              <view v-if="noticeForm.timeRangeType === 'temporary'" class="time-range-inputs">
-                <view class="date-input-group">
-                  <view class="date-input-item">
-                    <text class="date-label">开始日期</text>
-                    <picker 
-                      mode="date" 
-                      :value="noticeForm.startDate" 
-                      @change="onStartDateChange"
-                      class="date-picker"
-                    >
-                      <view class="date-picker-display">
-                        <text>{{ noticeForm.startDate || '选择开始日期' }}</text>
-                        <text class="picker-arrow">▼</text>
-                      </view>
-                    </picker>
+
+          <!-- 公告信息 -->
+          <view class="notice-info" @click="viewNoticeDetail(notice)">
+            <view class="notice-main">
+              <view class="notice-header">
+                <text class="notice-title">{{ notice.title }}</text>
+                <view class="notice-badges">
+                  <view v-if="notice.isSticky" class="badge sticky">置顶</view>
+                  <view class="badge type" :class="getTypeClass(notice.type)">
+                    {{ getTypeText(notice.type) }}
                   </view>
-                  <view class="date-input-item">
-                    <text class="date-label">结束日期</text>
-                    <picker 
-                      mode="date" 
-                      :value="noticeForm.endDate" 
-                      @change="onEndDateChange"
-                      class="date-picker"
-                    >
-                      <view class="date-picker-display">
-                        <text>{{ noticeForm.endDate || '选择结束日期' }}</text>
-                        <text class="picker-arrow">▼</text>
-                      </view>
-                    </picker>
+                  <view class="badge priority" :class="getPriorityClass(notice.priority)">
+                    优先级 {{ notice.priority || 0 }}
                   </view>
                 </view>
-                <text class="time-hint">不填写时间则创建永久公告，系统会自动处理时间范围</text>
+              </view>
+              
+              <view class="notice-content">
+                <text class="notice-description">{{ notice.content || '暂无内容' }}</text>
+              </view>
+
+              <view class="notice-meta">
+                <view class="time-info">
+                  <text class="time-label">生效时间：</text>
+                  <text class="time-range">{{ formatTimeRange(notice.startTime, notice.endTime) }}</text>
+                </view>
+                <view class="publish-info">
+                  <text class="publisher">发布者：{{ notice.publisherName || '未知' }}</text>
+                  <text class="publish-time">{{ formatDate(notice.publishTime || notice.createTime) }}</text>
+                </view>
               </view>
             </view>
+            
+            <view class="notice-status">
+              <view class="status-indicator" :class="getStatusClass(notice.status)">
+                <text class="status-text">{{ getStatusText(notice.status) }}</text>
+              </view>
+              <text class="view-count">浏览 {{ notice.viewCount || 0 }}</text>
+            </view>
           </view>
-        </view>
-        
-        <view class="modal-footer">
-          <button class="btn-cancel" @click="closeNoticeModal">取消</button>
-          <button 
-            class="btn-confirm" 
-            @click="saveNotice"
-            :disabled="!can保存"
-          >
-            {{ isEdit ? '更新' : '发布' }}
-          </button>
-        </view>
-      </view>
-    </view>
 
-    <!-- 类型选择弹窗 -->
-    <view v-if="showTypePicker" class="type-picker-modal" @click="showTypePicker = false">
-      <view class="type-picker-content" @click.stop>
-        <view class="type-picker-header">
-          <text class="type-picker-title">选择公告类型</text>
-          <button class="type-picker-close" @click="showTypePicker = false">×</button>
-        </view>
-        <view class="type-picker-list">
-          <view 
-            v-for="(type, index) in noticeTypes" 
-            :key="index"
-            class="type-picker-item"
-            :class="{ active: noticeForm.typeIndex === index }"
-            @click="selectType(index)"
-          >
-            <view class="type-picker-icon" :class="type.value"></view>
-            <text class="type-picker-name">{{ type.name }}</text>
-            <text v-if="noticeForm.typeIndex === index" class="type-picker-check">✓</text>
+          <!-- 操作按钮 -->
+          <view class="notice-actions">
+            <button class="action-btn edit" @click="editNotice(notice)">编辑</button>
+            <button 
+              class="action-btn" 
+              :class="notice.status === 'published' ? 'warning' : 'success'"
+              @click="toggleNoticeStatus(notice)"
+            >
+              {{ notice.status === 'published' ? '下线' : '发布' }}
+            </button>
+            <button class="action-btn danger" @click="deleteNotice(notice)">删除</button>
           </view>
         </view>
       </view>
+
+      <!-- 分页 -->
+      <view v-if="total > pageSize" class="pagination">
+        <button 
+          class="page-btn" 
+          :disabled="currentPage <= 1"
+          @click="changePage(currentPage - 1)"
+        >
+          上一页
+        </button>
+        <text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
+        <button 
+          class="page-btn" 
+          :disabled="currentPage >= totalPages"
+          @click="changePage(currentPage + 1)"
+        >
+          下一页
+        </button>
+      </view>
     </view>
 
-    <!-- 优先级选择弹窗 -->
-    <view v-if="showPriorityPicker" class="priority-picker-modal" @click="showPriorityPicker = false">
-      <view class="priority-picker-content" @click.stop>
-        <view class="priority-picker-header">
-          <text class="priority-picker-title">选择优先级</text>
-          <button class="priority-picker-close" @click="showPriorityPicker = false">×</button>
+    <!-- 新建/编辑公告弹窗 -->
+    <NoticeEditModal
+      :visible="showNoticeModal"
+      :notice="currentNotice"
+      :isEdit="isEdit"
+      @close="closeNoticeModal"
+      @save="handleSaveNotice"
+    />
+
+    <!-- 批量操作弹窗 -->
+    <view v-if="showBatchModal" class="modal-overlay" @click="closeBatchModal">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-title">批量操作</text>
+          <button class="close-btn" @click="closeBatchModal">✕</button>
         </view>
-        <view class="priority-picker-list">
-          <view 
-            v-for="(priority, index) in priorityTypes" 
-            :key="index"
-            class="priority-picker-item"
-            :class="{ active: noticeForm.priorityIndex === index }"
-            @click="selectPriority(index)"
-          >
-            <view class="priority-picker-icon" :class="'priority-' + priority.value"></view>
-            <text class="priority-picker-name">{{ priority.name }}</text>
-            <text v-if="noticeForm.priorityIndex === index" class="priority-picker-check">✓</text>
+
+        <view class="modal-body">
+          <view class="batch-info">
+            <text>已选择 {{ selectedNotices.length }} 条公告</text>
+          </view>
+
+          <view class="batch-actions">
+            <button class="batch-btn success" @click="batchUpdateStatus('published')">批量发布</button>
+            <button class="batch-btn warning" @click="batchUpdateStatus('draft')">批量下线</button>
+            <button class="batch-btn danger" @click="batchDelete">批量删除</button>
           </view>
         </view>
       </view>
     </view>
-
   </view>
 </template>
 
 <script>
 import api from '@/utils/api'
 import timeMixin from '@/mixins/timeMixin.js'
-import { TimeUtils } from '@/utils/timeUtils.js'
+import NoticeEditModal from '@/components/NoticeEditModal.vue'
 
 export default {
-  name: 'noticeManagement',
+  name: 'NoticesManagement',
   mixins: [timeMixin],
+  components: {
+    NoticeEditModal
+  },
   data() {
     return {
-      loading: false,
-      notices: [],
-      selectedTypeIndex: 0,
-      selectedStatusIndex: 0,
+      // 搜索和筛选
       searchKeyword: '',
+      selectedTypeIndex: -1,
+      selectedStatusIndex: -1,
+      selectedTimeTypeIndex: -1,
+      
+      // 分页
+      currentPage: 1,
+      pageSize: 20,
+      total: 0,
+      
+      // 数据
+      notices: [],
+      loading: false,
+      
+      // 选择状态
       selectedNotices: [],
+      
+      // 弹窗状态
       showNoticeModal: false,
+      showBatchModal: false,
       isEdit: false,
-      editingNoticeId: null,
-      showTypePicker: false,
-      showPriorityPicker: false,
-      noticeForm: {
-        title: '',
-        content: '',
-        typeIndex: 1, // 默认选择info类型
-        priorityIndex: 0, // 默认选择最低优先级
-        status: 'published', // 默认立即发布
-        isSticky: false, // 默认不置顶
-        timeRangeType: 'permanent', // 默认永久公告
-        startDate: '',
-        endDate: ''
-      },
-      noticeTypes: [
-        { value: 'all', name: '全部类型', color: '#6b7280' },
-        { value: 'info', name: '信息公告', color: '#007aff' },
-        { value: 'warning', name: '警告公告', color: '#f59e0b' },
-        { value: 'error', name: '错误公告', color: '#ef4444' },
-        { value: 'success', name: '成功公告', color: '#10b981' }
-      ],
-      statusTypes: [
-        { value: 'all', name: '全部状态', color: '#6b7280' },
-        { value: 'draft', name: '草稿', color: '#f59e0b' },
-        { value: 'published', name: '已发布', color: '#10b981' },
-        { value: 'archived', name: '已归档', color: '#6b7280' }
-      ],
-      priorityTypes: [
-        { value: 1, name: '低', color: '#10b981' },
-        { value: 2, name: '中', color: '#f59e0b' },
-        { value: 3, name: '高', color: '#ef4444' },
-        { value: 4, name: '紧急', color: '#dc2626' },
-        { value: 5, name: '最高', color: '#991b1b' }
+      currentNotice: null,
+      
+      // 防抖定时器
+      searchTimer: null
+    }
+  },
+  
+  computed: {
+    totalPages() {
+      return Math.ceil(this.total / this.pageSize)
+    },
+    
+    hasSelectedNotices() {
+      return this.selectedNotices.length > 0
+    },
+    
+    isAllSelected() {
+      return this.notices.length > 0 && this.selectedNotices.length === this.notices.length
+    },
+    
+    typeOptions() {
+      return [
+        { value: '', name: '全部类型' },
+        { value: 'info', name: '信息' },
+        { value: 'warning', name: '警告' },
+        { value: 'error', name: '错误' },
+        { value: 'success', name: '成功' }
+      ]
+    },
+    
+    statusOptions() {
+      return [
+        { value: '', name: '全部状态' },
+        { value: 'draft', name: '草稿' },
+        { value: 'published', name: '已发布' },
+        { value: 'archived', name: '已存档' }
+      ]
+    },
+    
+    timeTypeOptions() {
+      return [
+        { value: '', name: '全部' },
+        { value: 'permanent', name: '永久公告' },
+        { value: 'temporary', name: '时间段公告' },
+        { value: 'expired', name: '已过期' }
       ]
     }
   },
-  computed: {
-    filteredNotices() {
-      let filtered = this.notices
-      
-      // 按类型过滤
-      if (this.selectedTypeIndex > 0) {
-        const selectedType = this.noticeTypes[this.selectedTypeIndex].value
-        filtered = filtered.filter(notice => notice.type === selectedType)
-      }
-      
-      // 按状态过滤
-      if (this.selectedStatusIndex > 0) {
-        const selectedStatus = this.statusTypes[this.selectedStatusIndex].value
-        filtered = filtered.filter(notice => notice.status === selectedStatus)
-      }
-      
-      // 按关键词搜索
-      if (this.searchKeyword.trim()) {
-        const keyword = this.searchKeyword.toLowerCase()
-        filtered = filtered.filter(notice => 
-          notice.title.toLowerCase().includes(keyword) ||
-          notice.content.toLowerCase().includes(keyword)
-        )
-      }
-      
-      return filtered
-    },
-    can保存() {
-      return this.noticeForm.title.trim() && 
-             this.noticeForm.content.trim() &&
-             this.noticeForm.title.length <= 200
-    }
-  },
+  
   onLoad() {
+    this.checkAdminPermission()
     this.loadNotices()
   },
+  
   methods: {
+    /**
+     * 检查管理员权限
+     */
+    async checkAdminPermission() {
+      try {
+        const userInfo = uni.getStorageSync('userInfo')
+        if (!userInfo || !userInfo.role || !['admin', 'sys_admin'].includes(userInfo.role)) {
+          uni.showToast({
+            title: '权限不足',
+            icon: 'error'
+          })
+          setTimeout(() => {
+            uni.navigateBack()
+          }, 1500)
+          return false
+        }
+        return true
+      } catch (error) {
+        console.error('检查权限失败:', error)
+        return false
+      }
+    },
+
     /**
      * 加载公告列表
      */
     async loadNotices() {
       this.loading = true
       try {
-        const response = await api.admin.getNotices()
-        console.log('API响应:', response)
+        const params = {
+          page: this.currentPage,
+          pageSize: this.pageSize,
+          keyword: this.searchKeyword.trim(),
+          type: this.selectedTypeIndex >= 0 ? this.typeOptions[this.selectedTypeIndex].value : '',
+          status: this.selectedStatusIndex >= 0 ? this.statusOptions[this.selectedStatusIndex].value : '',
+          timeType: this.selectedTimeTypeIndex >= 0 ? this.timeTypeOptions[this.selectedTimeTypeIndex].value : ''
+        }
         
-        // 处理API返回的数据结构
-        if (response.success && response.data && response.data.records) {
-          // 映射API数据到前端期望的格式
-          this.notices = response.data.records.map(notice => {
-            // 处理状态字段 - 空字符串或null时根据publishTime判断
-            let status = notice.status
-            if (!status || status === '') {
-              status = notice.publishTime ? 'published' : 'draft'
-            }
-            
-            // 处理优先级 - 确保在1-5范围内
-            let priority = notice.priority || 1
-            if (priority > 5) priority = 5
-            if (priority < 1) priority = 1
-            
-            // 处理置顶状态
-            const isSticky = notice.isSticky === 1 || notice.isSticky === true
-            
-            return {
-              _id: notice._id,
-              id: notice._id, // 保持兼容性
-              title: notice.title || '无标题',
-              content: notice.content || '无内容',
-              type: notice.type || 'info',
-              status: status,
-              priority: priority,
-              createTime: notice.createTime || TimeUtils.getCurrentTimestamp(),
-              createdAt: notice.createTime || TimeUtils.getCurrentTimestamp(), // 保持兼容性
-              updateTime: notice.updateTime,
-              updatedAt: notice.updateTime, // 保持兼容性
-              publishTime: notice.publishTime,
-              startTime: notice.startTime,
-              endTime: notice.endTime,
-              isSticky: isSticky,
-              viewCount: notice.viewCount || 0,
-              publisherId: notice.publisherId,
-              publisherName: notice.publisherName || '系统'
-            }
-          })
-          
-          // 按优先级和创建时间排序
-          this.notices.sort((a, b) => {
-            // 先按置顶状态排序
-            if (a.isSticky && !b.isSticky) return -1
-            if (!a.isSticky && b.isSticky) return 1
-            
-            // 再按优先级排序（高优先级在前）
-            if (a.priority !== b.priority) return b.priority - a.priority
-            
-            // 最后按创建时间排序（新的在前），使用TimeUtils确保iOS兼容性
-            const timeA = TimeUtils.createDate(a.createdAt)
-            const timeB = TimeUtils.createDate(b.createdAt)
-            return (timeB || 0) - (timeA || 0)
-          })
-          
-          console.log('处理后的公告数据:', this.notices)
-        } else {
-          this.notices = []
+        const response = await api.admin.getNoticesList(params)
+        if (response && response.success) {
+          this.notices = response.data.records || []
+          this.total = response.data.total || 0
         }
       } catch (error) {
         console.error('加载公告失败:', error)
-        // 如果API调用失败，使用模拟数据
-        this.notices = [
-          {
-            id: '1',
-            title: '系统维护通知',
-            content: '系统将于今晚22:00-24:00进行维护升级，期间可能影响正常使用，请提前做好准备。',
-            type: 'warning',
-            status: 'published',
-            createdAt: TimeUtils.getCurrentTimestamp()
-          },
-          {
-            id: '2',
-            title: '新功能上线',
-            content: '报餐系统新增批量操作功能，管理员可以批量处理报餐申请，提升工作效率。',
-            type: 'success',
-            status: 'published',
-            createdAt: TimeUtils.toUTCForSubmit(TimeUtils.getPreviousDay(TimeUtils.getCurrentDate(), 1) + ' 12:00:00')
-          }
-        ]
         uni.showToast({
-          title: '使用模拟数据',
-          icon: 'none'
+          title: '加载公告失败',
+          icon: 'error'
         })
       } finally {
         this.loading = false
@@ -571,411 +366,137 @@ export default {
     },
 
     /**
-     * 刷新公告列表
+     * 搜索和筛选
      */
-    async refreshNotices() {
-      await this.loadNotices()
-      uni.showToast({
-        title: '刷新成功',
-        icon: 'success'
-      })
+    onSearchInput(e) {
+      this.searchKeyword = e.detail.value
+      clearTimeout(this.searchTimer)
+      this.searchTimer = setTimeout(() => {
+        this.currentPage = 1
+        this.loadNotices()
+      }, 500)
+    },
+
+    searchNotices() {
+      this.currentPage = 1
+      this.loadNotices()
+    },
+
+    onTypeChange(e) {
+      this.selectedTypeIndex = e.detail.value
+      this.currentPage = 1
+      this.loadNotices()
+    },
+
+    onStatusChange(e) {
+      this.selectedStatusIndex = e.detail.value
+      this.currentPage = 1
+      this.loadNotices()
+    },
+
+    onTimeTypeChange(e) {
+      this.selectedTimeTypeIndex = e.detail.value
+      this.currentPage = 1
+      this.loadNotices()
     },
 
     /**
-     * 创建公告
+     * 分页
      */
-    createNotice() {
-      this.isEdit = false
-      this.noticeForm = {
-        title: '',
-        content: '',
-        typeIndex: 1, // 默认选择info类型
-        priorityIndex: 0, // 默认选择最低优先级
-        status: 'published', // 默认立即发布
-        isSticky: false, // 默认不置顶
-        timeRangeType: 'permanent', // 默认永久公告
-        startDate: '',
-        endDate: ''
+    changePage(page) {
+      this.currentPage = page
+      this.loadNotices()
+    },
+
+    /**
+     * 选择操作
+     */
+    toggleSelectAll(e) {
+      const isChecked = e.detail.value && e.detail.value.length > 0
+      if (isChecked) {
+        this.selectedNotices = this.notices.map(notice => notice._id || notice.id)
+      } else {
+        this.selectedNotices = []
       }
-      console.log('创建公告表单初始化:', this.noticeForm)
+    },
+
+    onNoticeSelect(e) {
+      const noticeIds = e.detail.value
+      const isSelected = noticeIds && noticeIds.length > 0
+      const noticeId = noticeIds[0] || e.currentTarget.dataset.id
+      
+      if (isSelected && !this.selectedNotices.includes(noticeId)) {
+        this.selectedNotices.push(noticeId)
+      } else if (!isSelected && this.selectedNotices.includes(noticeId)) {
+        this.selectedNotices = this.selectedNotices.filter(id => id !== noticeId)
+      }
+    },
+
+    /**
+     * 公告操作
+     */
+    openCreateModal() {
+      this.isEdit = false
+      this.currentNotice = null
       this.showNoticeModal = true
     },
 
-    /**
-     * 编辑公告
-     */
     editNotice(notice) {
       this.isEdit = true
-      this.editingNoticeId = notice.id
-      
-      // 解析时间段数据 - 从后端返回的startTime和endTime中提取日期
-      let timeRangeType = 'permanent'
-      let startDate = '', endDate = ''
-      
-      if (notice.startTime || notice.endTime) {
-        timeRangeType = 'temporary'
-        
-        if (notice.startTime) {
-          // 从ISO时间字符串中提取日期部分
-          const startDateTime = TimeUtils.createDate(notice.startTime)
-          if (startDateTime) {
-            startDate = TimeUtils.formatDate(notice.startTime, 'YYYY-MM-DD')
-          }
-        }
-        
-        if (notice.endTime) {
-          // 从ISO时间字符串中提取日期部分
-          const endDateTime = TimeUtils.createDate(notice.endTime)
-          if (endDateTime) {
-            endDate = TimeUtils.formatDate(notice.endTime, 'YYYY-MM-DD')
-          }
-        }
-      }
-      
-      this.noticeForm = {
-        title: notice.title,
-        content: notice.content,
-        typeIndex: this.noticeTypes.findIndex(t => t.value === notice.type),
-        priorityIndex: this.priorityTypes.findIndex(p => p.value === notice.priority) || 0,
-        status: notice.status,
-        isSticky: notice.isSticky || false,
-        timeRangeType,
-        startDate,
-        endDate
-      }
+      this.currentNotice = notice
       this.showNoticeModal = true
     },
 
-    /**
-     * 删除公告
-     */
-    async deleteNotice(notice) {
+    async handleSaveNotice(noticeData) {
       try {
-        const result = await uni.showModal({
-          title: '确认删除',
-          content: `确定要删除公告"${notice.title}"吗？`,
-          confirmText: '删除',
-          confirmColor: '#ef4444'
-        })
-        
-        if (result.confirm) {
-          console.log('开始删除公告:', notice.id)
-          
-          // 显示加载状态
-          uni.showLoading({
-            title: '删除中...',
-            mask: true
-          })
-          
-          try {
-            // 调用删除API
-            const response = await api.admin.deleteNotice(notice.id)
-            console.log('删除API响应:', response)
-            
-            // 检查响应是否成功
-            if (response && response.success !== false) {
-              // 从本地数组删除
-              const index = this.notices.findIndex(n => n.id === notice.id)
-              if (index > -1) {
-                this.notices.splice(index, 1)
-                console.log('从本地数组删除成功，索引:', index)
-              }
-              
-              uni.hideLoading()
-              uni.showToast({
-                title: '删除成功',
-                icon: 'success'
-              })
-              
-              // 刷新公告列表以确保数据同步
-              setTimeout(() => {
-                this.loadNotices()
-              }, 1000)
-            } else {
-              throw new Error(response?.message || '删除失败')
-            }
-          } catch (api错误) {
-            uni.hideLoading()
-            throw api错误
-          }
-        }
-      } catch (error) {
-        console.error('删除公告失败:', error)
-        
-        // 解析错误信息
-        let errorMessage = '删除失败，请重试'
-        let errorType = 'error'
-        
-        if (error.message) {
-          if (error.message.includes('Cannot read properties of undefined')) {
-            errorMessage = '服务器内部错误，请稍后重试'
-            errorType = 'none'
-          } else if (error.message.includes('获取公告详情失败')) {
-            errorMessage = '无法获取公告信息，请检查网络连接'
-            errorType = 'none'
-          } else if (error.message.includes('权限不足')) {
-            errorMessage = '您没有删除此公告的权限'
-            errorType = 'none'
-          } else if (error.message.includes('请求的资源不存在')) {
-            errorMessage = '公告不存在或已被删除'
-            errorType = 'none'
-          } else if (error.message.includes('网络')) {
-            errorMessage = '网络连接失败，请检查网络设置'
-            errorType = 'none'
-          } else {
-            errorMessage = error.message
-            errorType = 'none'
-          }
-        }
-        
-        uni.showModal({
-          title: '删除失败',
-          content: errorMessage,
-          show取消: false,
-          confirmText: '确定',
-          confirmColor: '#ef4444'
-        })
-      }
-    },
-
-    /**
-     * 保存公告
-     */
-    async saveNotice() {
-      if (!this.can保存) {
-        uni.showToast({
-          title: '请完善必填信息',
-          icon: 'none'
-        })
-        return
-      }
-
-      try {
-        // 构建公告数据，根据新的API格式
-        const noticeData = {
-          title: this.noticeForm.title.trim(),
-          content: this.noticeForm.content.trim(),
-          type: this.noticeTypes[this.noticeForm.typeIndex].value,
-          priority: this.priorityTypes[this.noticeForm.priorityIndex].value,
-          status: this.noticeForm.status,
-          isSticky: this.noticeForm.isSticky
-        }
-        
-        // 处理时间段数据 - 根据公告文档v4的API格式
-        if (this.noticeForm.timeRangeType === 'temporary') {
-          // 临时公告，添加时间段字段
-          if (this.noticeForm.startDate) {
-            noticeData.startDate = this.noticeForm.startDate
-          }
-          if (this.noticeForm.endDate) {
-            noticeData.endDate = this.noticeForm.endDate
-          }
-        }
-        // 永久公告不需要添加时间字段，后端会处理为永久有效
-
+        let response
         if (this.isEdit) {
-          await api.admin.updateNotice(this.editingNoticeId, noticeData)
-          
-          // 更新本地数据
-          const index = this.notices.findIndex(n => n.id === this.editingNoticeId)
-          if (index > -1) {
-            this.notices.splice(index, 1, {
-              ...this.notices[index],
-              ...noticeData,
-              updatedAt: TimeUtils.getCurrentTimestamp()
-            })
-          }
+          response = await api.admin.updateNotice(this.currentNotice._id || this.currentNotice.id, noticeData)
         } else {
-          const response = await api.admin.createNotice(noticeData)
-          
-          // 添加到本地数组
-          const newNotice = {
-            id: response.data?.id || Date.now().toString(),
-            ...noticeData,
-            createdAt: TimeUtils.getCurrentTimestamp()
-          }
-          this.notices.unshift(newNotice)
+          response = await api.admin.createNotice(noticeData)
         }
 
-        uni.showToast({
-          title: this.isEdit ? '更新成功' : '发布成功',
-          icon: 'success'
-        })
-        
-        this.closeNoticeModal()
+        if (response && response.success) {
+          uni.showToast({
+            title: this.isEdit ? '公告修改成功' : '公告创建成功',
+            icon: 'success'
+          })
+          this.closeNoticeModal()
+          this.loadNotices()
+        }
       } catch (error) {
         console.error('保存公告失败:', error)
         uni.showToast({
-          title: '保存失败',
+          title: error.message || '保存失败',
           icon: 'error'
         })
       }
     },
 
-    /**
-     * 关闭弹窗
-     */
-    closeNoticeModal() {
-      this.showNoticeModal = false
-      this.isEdit = false
-      this.editingNoticeId = null
-    },
-
-    /**
-     * 类型筛选变化
-     */
-    onTypeChange(e) {
-      this.selectedTypeIndex = e.detail.value
-    },
-
-    /**
-     * 状态选择变化
-     */
-    onStatusChange(e) {
-      this.selectedStatusIndex = e.detail.value
-    },
-
-    /**
-     * 搜索输入
-     */
-    onSearch() {
-      // 搜索逻辑在computed中处理
-    },
-
-    /**
-     * 清除搜索
-     */
-    clearSearch() {
-      this.searchKeyword = ''
-    },
-
-    /**
-     * 切换公告选择
-     */
-    toggleNoticeSelection(noticeId) {
-      const index = this.selectedNotices.indexOf(noticeId)
-      if (index > -1) {
-        this.selectedNotices.splice(index, 1)
-      } else {
-        this.selectedNotices.push(noticeId)
-      }
-    },
-
-    /**
-     * 批量删除
-     */
-    async batch删除() {
-      if (this.selectedNotices.length === 0) {
-        uni.showToast({
-          title: '请选择要删除的公告',
-          icon: 'none'
-        })
-        return
-      }
-
-      uni.showModal({
-        title: '确认删除',
-        content: `确定要删除选中的 ${this.selectedNotices.length} 条公告吗？`,
-        confirmText: '删除',
-        confirmColor: '#ef4444',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              console.log('开始批量删除公告:', this.selectedNotices)
-              
-              // 显示加载状态
-              uni.showLoading({
-                title: '删除中...',
-                mask: true
-              })
-              
-              try {
-                // 调用批量删除API
-                const response = await api.admin.batchDeleteNotices(this.selectedNotices)
-                console.log('批量删除API响应:', response)
-                
-                // 检查响应是否成功
-                if (response && response.success !== false) {
-                  // 从本地数组删除
-                  this.notices = this.notices.filter(notice => !this.selectedNotices.includes(notice.id))
-                  this.selectedNotices = []
-                  
-                  uni.hideLoading()
-                  uni.showToast({
-                    title: '删除成功',
-                    icon: 'success'
-                  })
-                  
-                  // 刷新公告列表以确保数据同步
-                  setTimeout(() => {
-                    this.loadNotices()
-                  }, 1000)
-                } else {
-                  throw new Error(response?.message || '批量删除失败')
-                }
-              } catch (api错误) {
-                uni.hideLoading()
-                throw api错误
-              }
-            } catch (error) {
-              console.error('批量删除失败:', error)
-              
-              // 解析错误信息
-              let errorMessage = '批量删除失败，请重试'
-              
-              if (error.message) {
-                if (error.message.includes('Cannot read properties of undefined')) {
-                  errorMessage = '服务器内部错误，请稍后重试'
-                } else if (error.message.includes('获取公告详情失败')) {
-                  errorMessage = '无法获取公告信息，请检查网络连接'
-                } else if (error.message.includes('权限不足')) {
-                  errorMessage = '您没有删除这些公告的权限'
-                } else if (error.message.includes('请求的资源不存在')) {
-                  errorMessage = '部分公告不存在或已被删除'
-                } else if (error.message.includes('网络')) {
-                  errorMessage = '网络连接失败，请检查网络设置'
-                } else {
-                  errorMessage = error.message
-                }
-              }
-              
-              uni.showModal({
-                title: '批量删除失败',
-                content: errorMessage,
-                show取消: false,
-                confirmText: '确定',
-                confirmColor: '#ef4444'
-              })
-            }
-          }
-        }
-      })
-    },
-
-    /**
-     * 切换公告状态
-     */
     async toggleNoticeStatus(notice) {
       try {
-        if (notice.status === 'published') {
-          // 取消发布
-          await api.admin.unpublishNotice(notice.id)
-          notice.status = 'draft'
-          uni.showToast({
-            title: '已取消发布',
-            icon: 'success'
-          })
-        } else {
-          // 发布
-          await api.admin.publishNotice(notice.id)
-          notice.status = 'published'
-          uni.showToast({
-            title: '已发布',
-            icon: 'success'
-          })
+        const newStatus = notice.status === 'published' ? 'draft' : 'published'
+        const actionText = newStatus === 'published' ? '发布' : '下线'
+        
+        const result = await uni.showModal({
+          title: `确认${actionText}`,
+          content: `确定要${actionText}公告"${notice.title}"吗？`,
+          confirmText: actionText,
+          confirmColor: '#667eea'
+        })
+        
+        if (result.confirm) {
+          const response = await api.admin.updateNoticeStatus(notice._id || notice.id, newStatus)
+          if (response && response.success) {
+            uni.showToast({
+              title: `${actionText}成功`,
+              icon: 'success'
+            })
+            this.loadNotices()
+          }
         }
       } catch (error) {
-        console.error('更新状态失败:', error)
+        console.error('更新公告状态失败:', error)
         uni.showToast({
           title: '操作失败',
           icon: 'error'
@@ -983,195 +504,196 @@ export default {
       }
     },
 
-    /**
-     * 归档公告
-     */
-    async archiveNotice(notice) {
+    async deleteNotice(notice) {
       try {
         const result = await uni.showModal({
-          title: '确认归档',
-          content: `确定要归档公告"${notice.title}"吗？`,
-          confirmText: '归档',
-          confirmColor: '#f59e0b'
+          title: '确认删除',
+          content: `确定要删除公告"${notice.title}"吗？`,
+          confirmText: '删除',
+          confirmColor: '#e74c3c'
         })
         
         if (result.confirm) {
-          await api.admin.archiveNotice(notice.id)
-          notice.status = 'archived'
-          uni.showToast({
-            title: '归档成功',
-            icon: 'success'
-          })
+          const response = await api.admin.deleteNotice(notice._id || notice.id)
+          if (response && response.success) {
+            uni.showToast({
+              title: '删除成功',
+              icon: 'success'
+            })
+            this.loadNotices()
+          }
         }
       } catch (error) {
-        console.error('归档失败:', error)
+        console.error('删除公告失败:', error)
         uni.showToast({
-          title: '归档失败',
+          title: '删除失败',
           icon: 'error'
         })
       }
     },
 
     /**
-     * 获取优先级文本
+     * 批量操作
      */
-    getPriorityText(priority) {
-      const priorityType = this.priorityTypes.find(p => p.value === priority)
-      return priorityType ? priorityType.name : '未知'
+    showBatchActions() {
+      this.showBatchModal = true
     },
 
-    /**
-     * 获取置顶状态文本
-     */
-    getStickyText(isSticky) {
-      return isSticky ? '置顶' : ''
-    },
-
-    /**
-     * 表单类型变化
-     */
-    onFormTypeChange(e) {
-      this.noticeForm.typeIndex = e.detail.value
-    },
-
-    /**
-     * 选择公告类型
-     */
-    selectType(index) {
-      this.noticeForm.typeIndex = index
-      this.showTypePicker = false
-    },
-
-    /**
-     * 选择优先级
-     */
-    selectPriority(index) {
-      this.noticeForm.priorityIndex = index
-      this.showPriorityPicker = false
-    },
-
-
-    /**
-     * 获取类型文本
-     */
-    getTypeText(type) {
-      const typeObj = this.noticeTypes.find(t => t.value === type)
-      return typeObj ? typeObj.name : '未知'
-    },
-
-    /**
-     * 获取状态文本
-     */
-    getStatusText(status) {
-      // 处理空字符串或undefined状态
-      if (!status || status === '') {
-        return '已发布' // 默认为已发布
-      }
-      
-      const statusMap = {
-        'published': '已发布',
-        'draft': '草稿',
-        'archived': '已归档',
-        'publish': '已发布',
-        'unpublished': '未发布'
-      }
-      return statusMap[status] || '未知'
-    },
-
-    /**
-     * 获取表单状态显示文本
-     */
-    getFormStatusText(status) {
-      const statusMap = {
-        'published': '立即发布',
-        'draft': '保存草稿'
-      }
-      return statusMap[status] || '立即发布'
-    },
-
-    /**
-     * 时间段类型变化处理
-     */
-    onTimeRangeTypeChange() {
-      if (this.noticeForm.timeRangeType === 'permanent') {
-        // 切换到永久公告，清空日期
-        this.noticeForm.startDate = ''
-        this.noticeForm.endDate = ''
-      }
-    },
-
-    /**
-     * 开始日期变化
-     */
-    onStartDateChange(e) {
-      this.noticeForm.startDate = e.detail.value
-      this.validateDateRange()
-    },
-
-    /**
-     * 结束日期变化
-     */
-    onEndDateChange(e) {
-      this.noticeForm.endDate = e.detail.value
-      this.validateDateRange()
-    },
-
-    /**
-     * 验证日期范围
-     */
-    validateDateRange() {
-      if (this.noticeForm.startDate && this.noticeForm.endDate) {
-        const startDate = new Date(this.noticeForm.startDate)
-        const endDate = new Date(this.noticeForm.endDate)
+    async batchUpdateStatus(status) {
+      try {
+        const statusText = status === 'published' ? '发布' : '下线'
+        const result = await uni.showModal({
+          title: '确认操作',
+          content: `确定要${statusText}选中的 ${this.selectedNotices.length} 条公告吗？`,
+          confirmText: statusText,
+          confirmColor: '#667eea'
+        })
         
-        if (startDate > endDate) {
-          uni.showToast({
-            title: '开始日期不能晚于结束日期',
-            icon: 'none'
-          })
-          // 清空结束日期
-          this.noticeForm.endDate = ''
+        if (result.confirm) {
+          const response = await api.admin.batchUpdateNoticeStatus(this.selectedNotices, status)
+          if (response && response.success) {
+            uni.showToast({
+              title: `${statusText}成功`,
+              icon: 'success'
+            })
+            this.selectedNotices = []
+            this.closeBatchModal()
+            this.loadNotices()
+          }
         }
+      } catch (error) {
+        console.error('批量更新状态失败:', error)
+        uni.showToast({
+          title: '操作失败',
+          icon: 'error'
+        })
+      }
+    },
+
+    async batchDelete() {
+      try {
+        const result = await uni.showModal({
+          title: '确认删除',
+          content: `确定要删除选中的 ${this.selectedNotices.length} 条公告吗？此操作不可恢复！`,
+          confirmText: '删除',
+          confirmColor: '#e74c3c'
+        })
+        
+        if (result.confirm) {
+          for (const noticeId of this.selectedNotices) {
+            try {
+              await api.admin.deleteNotice(noticeId)
+            } catch (error) {
+              console.error(`删除公告 ${noticeId} 失败:`, error)
+            }
+          }
+          
+          uni.showToast({
+            title: '批量删除成功',
+            icon: 'success'
+          })
+          this.selectedNotices = []
+          this.closeBatchModal()
+          this.loadNotices()
+        }
+      } catch (error) {
+        console.error('批量删除失败:', error)
+        uni.showToast({
+          title: '删除失败',
+          icon: 'error'
+        })
       }
     },
 
     /**
-     * 格式化时间，使用TimeUtils确保iOS兼容性
+     * 弹窗控制
      */
-    formatTime(time) {
-      if (!time) return ''
-      
-      // 使用TimeUtils格式化时间，确保iOS兼容性
-      return TimeUtils.formatUTCTime(time, 'datetime')
+    closeNoticeModal() {
+      this.showNoticeModal = false
+      this.currentNotice = null
+    },
+
+    closeBatchModal() {
+      this.showBatchModal = false
     },
 
     /**
-     * 格式化公告时间段显示
+     * 工具方法
      */
-    formatNoticeTimeRange(startTime, endTime) {
+    formatDate(dateStr) {
+      if (!dateStr) return '未知'
+      try {
+        return this.$formatDate(dateStr)
+      } catch (error) {
+        console.error('日期格式化错误:', error)
+        return '未知'
+      }
+    },
+
+    formatTimeRange(startTime, endTime) {
       if (!startTime && !endTime) {
         return '永久有效'
       }
       
-      const start = startTime ? TimeUtils.createDate(startTime) : null
-      const end = endTime ? TimeUtils.createDate(endTime) : null
-      
-      if (start && end) {
-        const startStr = TimeUtils.formatDate(startTime, 'YYYY-MM-DD')
-        const endStr = TimeUtils.formatDate(endTime, 'YYYY-MM-DD')
+      if (startTime && endTime) {
+        const start = this.formatDate(startTime)
+        const end = this.formatDate(endTime)
         
-        if (startStr === endStr) {
-          return startStr // 同一天
+        if (start === end) {
+          return start // 同一天
         } else {
-          return `${startStr} 至 ${endStr}`
+          return `${start} 至 ${end}`
         }
-      } else if (start) {
-        return `从 ${TimeUtils.formatDate(startTime, 'YYYY-MM-DD')} 开始`
-      } else if (end) {
-        return `到 ${TimeUtils.formatDate(endTime, 'YYYY-MM-DD')} 结束`
       }
       
-      return '永久有效'
+      if (startTime) {
+        return `从 ${this.formatDate(startTime)} 开始`
+      }
+      
+      if (endTime) {
+        return `至 ${this.formatDate(endTime)} 结束`
+      }
+      
+      return '未设置'
+    },
+
+    getTypeText(type) {
+      const typeMap = {
+        'info': '信息',
+        'warning': '警告',
+        'error': '错误',
+        'success': '成功'
+      }
+      return typeMap[type] || '信息'
+    },
+
+    getTypeClass(type) {
+      return `type-${type || 'info'}`
+    },
+
+    getStatusText(status) {
+      const statusMap = {
+        'draft': '草稿',
+        'published': '已发布',
+        'archived': '已存档'
+      }
+      return statusMap[status] || '未知'
+    },
+
+    getStatusClass(status) {
+      return `status-${status || 'draft'}`
+    },
+
+    getPriorityClass(priority) {
+      const level = priority || 0
+      if (level >= 8) return 'priority-high'
+      if (level >= 5) return 'priority-medium'
+      return 'priority-low'
+    },
+
+    viewNoticeDetail(notice) {
+      console.log('查看公告详情:', notice)
+      // 可以跳转到公告详情页面
     }
   }
 }
@@ -1181,503 +703,585 @@ export default {
 .notices-container {
   min-height: 100vh;
   background: #f8f9fa;
+  padding-bottom: 120rpx;
+  padding-bottom: calc(120rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(120rpx + env(safe-area-inset-bottom));
 }
 
 /* 页面头部 */
 .page-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 32rpx 24rpx 24rpx;
+  padding: 60rpx 30rpx 40rpx;
   color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.header-content {
-  flex: 1;
 }
 
 .header-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  margin-bottom: 8rpx;
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.title-icon {
-  font-size: 28rpx;
+  font-size: 44rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
 }
 
 .header-subtitle {
-  font-size: 22rpx;
+  font-size: 26rpx;
   opacity: 0.9;
-  line-height: 1.4;
 }
 
-.header-stats {
-  display: flex;
-  gap: 24rpx;
-  margin-top: 8rpx;
-}
-
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4rpx;
-}
-
-.stat-number {
-  font-size: 24rpx;
-  font-weight: 600;
-  color: #fff;
-}
-
-.stat-label {
-  font-size: 20rpx;
-  opacity: 0.8;
-}
-
-/* 工具栏 */
+/* 操作工具栏 */
 .toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx 24rpx;
   background: white;
-  border-bottom: 1rpx solid #e9ecef;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  box-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.05);
-}
-
-.toolbar-left {
-  display: flex;
-  gap: 12rpx;
-  flex-wrap: wrap;
-}
-
-.toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex-wrap: wrap;
-}
-
-.action-btn {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-  padding: 10rpx 16rpx;
-  border: none;
-  border-radius: 6rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  min-height: 48rpx;
-  cursor: pointer;
-}
-
-.action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2rpx 4rpx rgba(102, 126, 234, 0.2);
-}
-
-.action-btn.primary:hover {
-  transform: translateY(-1rpx);
-  box-shadow: 0 4rpx 8rpx rgba(102, 126, 234, 0.3);
-}
-
-.action-btn.secondary {
-  background: #f8f9fa;
-  color: #6c757d;
-  border: 1rpx solid #e9ecef;
-}
-
-.action-btn.secondary:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.action-btn.danger {
-  background: #dc3545;
-  color: white;
-  box-shadow: 0 2rpx 4rpx rgba(220, 53, 69, 0.2);
-}
-
-.action-btn.danger:hover {
-  background: #c82333;
-  transform: translateY(-1rpx);
-  box-shadow: 0 4rpx 8rpx rgba(220, 53, 69, 0.3);
-}
-
-.action-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.btn-icon {
-  font-size: 20rpx;
-}
-
-.btn-icon.spinning {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* 搜索框 */
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  background: #f8f9fa;
-  border: 1rpx solid #e9ecef;
-  border-radius: 6rpx;
-  padding: 8rpx 12rpx;
-  min-width: 200rpx;
-}
-
-.search-icon {
-  font-size: 18rpx;
-  color: #6c757d;
-  margin-right: 8rpx;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 22rpx;
-  color: #333;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: #999;
-  font-size: 20rpx;
-}
-
-.clear-search {
-  position: absolute;
-  right: 8rpx;
-  width: 24rpx;
-  height: 24rpx;
-  border: none;
-  background: #dc3545;
-  color: white;
-  border-radius: 50%;
-  font-size: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.clear-search:hover {
-  background: #c82333;
-  transform: scale(1.1);
-}
-
-/* 筛选选择器 */
-.filter-picker {
-  padding: 8rpx 12rpx;
-  background: #f8f9fa;
-  border: 1rpx solid #e9ecef;
-  border-radius: 6rpx;
-  font-size: 22rpx;
-  color: #333;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120rpx;
-}
-
-.filter-picker:hover {
-  background: #e9ecef;
-  border-color: #dee2e6;
-}
-
-.picker-content {
-  display: flex;
-  align-items: center;
-  gap: 6rpx;
-}
-
-.picker-icon {
-  font-size: 18rpx;
-  color: #6c757d;
-}
-
-.picker-text {
-  font-size: 20rpx;
-  color: #333;
-}
-
-/* 公告列表 */
-.notices-list {
+  border-radius: 16rpx;
   padding: 30rpx;
-}
-
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 80rpx 0;
-}
-
-.loading-spinner {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid #f3f3f3;
-  border-top: 4rpx solid #667eea;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
   margin-bottom: 20rpx;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 120rpx 0;
-  text-align: center;
-}
-
-.empty-icon {
-  font-size: 80rpx;
-  margin-bottom: 20rpx;
-  opacity: 0.5;
-}
-
-.empty-title {
-  font-size: 32rpx;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 10rpx;
-}
-
-.empty-desc {
-  font-size: 24rpx;
-  color: #666;
-}
-
-/* 公告卡片 */
-.notice-cards {
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
   gap: 20rpx;
 }
 
-.notice-card {
+.search-section {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  border: 2rpx solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.search-section:focus-within {
+  border-color: #667eea;
+  background: white;
+  box-shadow: 0 0 0 4rpx rgba(102, 126, 234, 0.1);
+}
+
+.search-input {
+  flex: 1;
+  padding: 8rpx 16rpx;
+  font-size: 28rpx;
+  background: none;
+  border: none;
+  outline: none;
+  color: #333;
+}
+
+.search-input::placeholder {
+  color: #999;
+}
+
+.search-btn {
+  width: 72rpx;
+  height: 72rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.search-btn:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+}
+
+.filter-section {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-picker {
+  flex: 1;
+  min-width: 200rpx;
+  background: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  font-size: 26rpx;
+  color: #333;
+  border: 2rpx solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+}
+
+.filter-picker:active {
+  background: #e9ecef;
+  border-color: #667eea;
+}
+
+.picker-text {
+  color: #666;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  padding: 20rpx 30rpx;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  border: none;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  font-weight: 500;
+  min-height: 76rpx;
+}
+
+.action-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4rpx 12rpx rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.primary:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.secondary {
+  background: white;
+  color: #667eea;
+  border: 2rpx solid #667eea;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
+}
+
+.action-btn.secondary:active {
+  background: #f8f9fa;
+  transform: translateY(1rpx);
+}
+
+.action-btn.secondary:disabled {
+  background: #f8f9fa;
+  color: #ccc;
+  border-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.btn-icon {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+/* 公告列表 */
+.notices-content {
   background: white;
   border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 20rpx;
+  color: #999;
+}
+
+.loading-spinner {
+  width: 80rpx;
+  height: 80rpx;
+  border: 8rpx solid #f3f3f3;
+  border-top: 8rpx solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24rpx;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80rpx 20rpx;
+  color: #999;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  margin-bottom: 12rpx;
+  display: block;
+  color: #666;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  display: block;
+  color: #999;
+}
+
+.notices-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.list-header {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 30rpx;
+  background: #f8f9fa;
+  border-bottom: 2rpx solid #e9ecef;
+}
+
+.select-all-checkbox {
+  margin-right: 20rpx;
+}
+
+.header-label {
+  font-size: 26rpx;
+  color: #333;
+  margin-right: auto;
+}
+
+.notice-count {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.notice-item {
+  display: flex;
+  align-items: flex-start;
   padding: 30rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-  border-left: 6rpx solid #007aff;
+  border-bottom: 2rpx solid #f8f9fa;
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
+  background: white;
 }
 
-.notice-card:hover {
-  transform: translateY(-2rpx);
-  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.15);
+.notice-item:last-child {
+  border-bottom: none;
 }
 
-.notice-card.info {
-  border-left-color: #007aff;
+.notice-item.selected {
+  background: #f0f4ff;
+  border-left: 6rpx solid #667eea;
 }
 
-.notice-card.warning {
-  border-left-color: #f59e0b;
+.notice-item:hover {
+  background: #fafbfc;
+  transform: translateY(-1rpx);
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
 }
 
-.notice-card.error {
-  border-left-color: #ef4444;
+.notice-selector {
+  flex-shrink: 0;
+  width: 60rpx;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8rpx;
 }
 
-.notice-card.success {
-  border-left-color: #10b981;
+.notice-selector checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  color: #667eea;
+}
+
+.notice-info {
+  flex: 1;
+  padding: 0 24rpx;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.notice-main {
+  width: 100%;
 }
 
 .notice-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-  flex-wrap: wrap;
-  gap: 12rpx;
-  min-height: 60rpx;
-}
-
-.notice-type-badge {
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 22rpx;
-  font-weight: 500;
-}
-
-.notice-type-badge.info {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.notice-type-badge.warning {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
-.notice-type-badge.error {
-  background: #ffebee;
-  color: #d32f2f;
-}
-
-.notice-type-badge.success {
-  background: #e8f5e8;
-  color: #388e3c;
-}
-
-.notice-actions {
-  display: flex;
-  gap: 10rpx;
-  flex-shrink: 0;
-  margin-left: 16rpx;
-}
-
-.action-btn-small {
-  padding: 8rpx 16rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 8rpx;
-  background: white;
-  font-size: 22rpx;
-  color: #666;
-}
-
-.action-btn-small.danger {
-  color: #ef4444;
-  border-color: #fecaca;
-}
-
-.notice-content {
-  margin-bottom: 20rpx;
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 16rpx;
+  gap: 16rpx;
 }
 
 .notice-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 12rpx;
-  display: block;
+  color: #2c3e50;
   line-height: 1.4;
-  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
 }
 
-.notice-text {
-  font-size: 28rpx;
+.notice-badges {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.badge {
+  padding: 6rpx 12rpx;
+  border-radius: 12rpx;
+  font-size: 20rpx;
+  color: white;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.badge.sticky {
+  background: #e74c3c;
+}
+
+.badge.type {
+  &.type-info {
+    background: #3498db;
+  }
+  &.type-warning {
+    background: #f39c12;
+  }
+  &.type-error {
+    background: #e74c3c;
+  }
+  &.type-success {
+    background: #27ae60;
+  }
+}
+
+.badge.priority {
+  &.priority-low {
+    background: #95a5a6;
+  }
+  &.priority-medium {
+    background: #f39c12;
+  }
+  &.priority-high {
+    background: #e74c3c;
+  }
+}
+
+.notice-content {
+  margin-bottom: 16rpx;
+}
+
+.notice-description {
+  font-size: 26rpx;
   color: #666;
-  line-height: 1.6;
+  line-height: 1.5;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  word-break: break-word;
-}
-
-.notice-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f0f0f0;
-  gap: 16rpx;
+  text-overflow: ellipsis;
 }
 
 .notice-meta {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
-  flex: 1;
-  min-width: 0;
-}
-
-.notice-publisher,
-.notice-views {
-  font-size: 22rpx;
-  color: #9ca3af;
-  line-height: 1.2;
-}
-
-.notice-status-info {
-  display: flex;
-  align-items: center;
-}
-
-.notice-time {
   font-size: 22rpx;
   color: #999;
 }
 
-.notice-status {
-  font-size: 22rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 12rpx;
-  background: #f8f9fa;
+.time-info, .publish-info {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.time-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.time-range {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.publisher {
   color: #666;
 }
 
-.notice-status.published {
-  background: #d1fae5;
-  color: #065f46;
+.publish-time {
+  color: #999;
 }
 
-/* 弹窗样式 */
+.notice-status {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12rpx;
+  min-width: 120rpx;
+}
+
+.status-indicator {
+  padding: 8rpx 16rpx;
+  border-radius: 16rpx;
+  font-size: 22rpx;
+  color: white;
+  font-weight: 500;
+  text-align: center;
+  min-width: 80rpx;
+}
+
+.status-indicator.status-draft {
+  background: #95a5a6;
+}
+
+.status-indicator.status-published {
+  background: #27ae60;
+}
+
+.status-indicator.status-archived {
+  background: #f39c12;
+}
+
+.view-count {
+  font-size: 20rpx;
+  color: #999;
+  text-align: center;
+}
+
+.notice-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  min-width: 120rpx;
+  align-items: flex-end;
+}
+
+.notice-actions .action-btn {
+  padding: 12rpx 20rpx;
+  font-size: 22rpx;
+  min-height: 56rpx;
+  border-radius: 8rpx;
+  gap: 6rpx;
+  min-width: 80rpx;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.action-btn.edit {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(52, 152, 219, 0.3);
+}
+
+.action-btn.edit:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(52, 152, 219, 0.3);
+}
+
+.action-btn.success {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(39, 174, 96, 0.3);
+}
+
+.action-btn.success:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(39, 174, 96, 0.3);
+}
+
+.action-btn.warning {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(243, 156, 18, 0.3);
+}
+
+.action-btn.warning:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(243, 156, 18, 0.3);
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  color: white;
+  box-shadow: 0 2rpx 8rpx rgba(231, 76, 60, 0.3);
+}
+
+.action-btn.danger:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(231, 76, 60, 0.3);
+}
+
+/* 分页 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20rpx;
+  padding: 30rpx;
+  background: #f8f9fa;
+}
+
+.page-btn {
+  padding: 20rpx 30rpx;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  transition: all 0.3s ease;
+  box-shadow: 0 2rpx 8rpx rgba(102, 126, 234, 0.3);
+}
+
+.page-btn:active {
+  transform: translateY(1rpx);
+  box-shadow: 0 1rpx 4rpx rgba(102, 126, 234, 0.3);
+}
+
+.page-btn:disabled {
+  background: #ccc;
+  color: #999;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.page-info {
+  font-size: 26rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+/* 批量操作弹窗 */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 9999;
 }
 
 .modal-content {
   background: white;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
   width: 90%;
   max-width: 600rpx;
-  max-height: 90vh;
-  overflow: hidden;
-  position: relative;
-  z-index: 10000;
+  max-height: 90%;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 10rpx 30rpx rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 .modal-header {
@@ -1685,12 +1289,13 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 30rpx;
-  border-bottom: 1rpx solid #e9ecef;
+  border-bottom: 2rpx solid #f0f0f0;
+  background: #fafbfc;
 }
 
 .modal-title {
   font-size: 32rpx;
-  font-weight: 600;
+  font-weight: bold;
   color: #333;
 }
 
@@ -1698,1036 +1303,146 @@ export default {
   width: 60rpx;
   height: 60rpx;
   border: none;
-  background: #f8f9fa;
+  background: #f5f5f5;
+  color: #666;
   border-radius: 50%;
   font-size: 32rpx;
-  color: #666;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.close-btn:active {
+  background: #e9ecef;
 }
 
 .modal-body {
   padding: 30rpx;
   flex: 1;
   overflow-y: auto;
-  min-height: 0;
 }
 
-.form-group {
-  margin-bottom: 30rpx;
-}
-
-.form-label {
+.batch-info {
+  text-align: center;
+  padding: 20rpx 0;
   font-size: 26rpx;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.batch-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.batch-btn {
+  padding: 24rpx 30rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+  transition: all 0.3s ease;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 10rpx;
-  display: block;
 }
 
-/* 确保表单元素正确显示 */
-.form-group input[type="radio"],
-.form-group input[type="checkbox"] {
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 8rpx;
-  -webkit-appearance: none;
-  appearance: none;
-  width: 32rpx;
-  height: 32rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 50%;
-  background: white;
-  position: relative;
-}
-
-.form-group input[type="checkbox"] {
-  border-radius: 4rpx;
-}
-
-.form-group input[type="radio"]:checked {
-  border-color: #667eea;
-  background: #667eea;
-}
-
-.form-group input[type="radio"]:checked::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 12rpx;
-  height: 12rpx;
-  border-radius: 50%;
-  background: white;
-}
-
-.form-group input[type="checkbox"]:checked {
-  border-color: #667eea;
-  background: #667eea;
-}
-
-.form-group input[type="checkbox"]:checked::after {
-  content: '✓';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.batch-btn.success {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
   color: white;
-  font-size: 20rpx;
-  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(39, 174, 96, 0.3);
 }
 
-.form-group label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
+.batch-btn.success:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(39, 174, 96, 0.3);
 }
 
-.form-input {
-  width: 100%;
-  padding: 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #333;
-  background: white;
-}
-
-.form-picker {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #333;
-  background: white;
-  position: relative;
-  z-index: 1001;
-  min-height: 60rpx;
-}
-
-.picker-arrow {
-  font-size: 20rpx;
-  color: #999;
-}
-
-/* Picker选项样式优化 */
-.form-group picker {
-  position: relative;
-  z-index: 10001;
-}
-
-/* 确保picker选项不被遮挡 */
-.form-group {
-  position: relative;
-  z-index: 1000;
-}
-
-/* 类型选择弹窗样式 */
-.type-picker-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20000;
-}
-
-.type-picker-content {
-  background: white;
-  border-radius: 16rpx;
-  width: 80%;
-  max-width: 500rpx;
-  max-height: 60vh;
-  overflow: hidden;
-}
-
-.type-picker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.type-picker-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.type-picker-close {
-  background: none;
-  border: none;
-  font-size: 40rpx;
-  color: #999;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.type-picker-list {
-  max-height: 400rpx;
-  overflow-y: auto;
-}
-
-.type-picker-item {
-  display: flex;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f8f9fa;
-  transition: all 0.3s ease;
-}
-
-.type-picker-item:last-child {
-  border-bottom: none;
-}
-
-.type-picker-item:active {
-  background: #f8f9fa;
-}
-
-.type-picker-item.active {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.type-picker-icon {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 8rpx;
-  margin-right: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20rpx;
-}
-
-.type-picker-icon.info {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.type-picker-icon.warning {
-  background: #fff3e0;
-  color: #f57c00;
-}
-
-.type-picker-icon.error {
-  background: #ffebee;
-  color: #d32f2f;
-}
-
-.type-picker-icon.success {
-  background: #e8f5e8;
-  color: #388e3c;
-}
-
-.type-picker-name {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.type-picker-check {
-  font-size: 32rpx;
-  color: #667eea;
-  font-weight: bold;
-}
-
-.form-textarea {
-  width: 100%;
-  min-height: 200rpx;
-  padding: 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #333;
-  background: white;
-  resize: none;
-}
-
-.char-count {
-  font-size: 22rpx;
-  color: #999;
-  text-align: right;
-  margin-top: 10rpx;
-  display: block;
-}
-
-.status-options {
-  display: flex;
-  gap: 30rpx;
-}
-
-.status-option {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  font-size: 26rpx;
-  color: #333;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 20rpx;
-  padding: 30rpx;
-  border-top: 1rpx solid #e9ecef;
-  flex-shrink: 0;
-  background: white;
-  border-radius: 0 0 16rpx 16rpx;
-}
-
-.btn-cancel {
-  flex: 1;
-  padding: 24rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  background: white;
-  font-size: 28rpx;
-  color: #666;
-}
-
-.btn-confirm {
-  flex: 1;
-  padding: 24rpx;
-  border: none;
-  border-radius: 12rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-size: 28rpx;
+.batch-btn.warning {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
   color: white;
+  box-shadow: 0 4rpx 12rpx rgba(243, 156, 18, 0.3);
 }
 
-.btn-confirm:disabled {
-  background: #ccc;
-  cursor: not-allowed;
+.batch-btn.warning:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(243, 156, 18, 0.3);
 }
 
-/* 新增样式 */
-.search-box {
-  position: relative;
-  display: flex;
-  align-items: center;
-  min-width: 240rpx;
-}
-
-.search-input {
-  width: 100%;
-  height: 60rpx;
-  padding: 0 40rpx 0 16rpx;
-  border: 1rpx solid #e5e7eb;
-  border-radius: 30rpx;
-  font-size: 24rpx;
-  background: #f9fafb;
-  transition: all 0.3s ease;
-}
-
-.search-input:focus {
-  border-color: #667eea;
-  background: white;
-  box-shadow: 0 0 0 2rpx rgba(102, 126, 234, 0.1);
-}
-
-.search-icon {
-  position: absolute;
-  right: 16rpx;
-  font-size: 24rpx;
-  color: #9ca3af;
-  pointer-events: none;
-}
-
-.notice-selection {
-  margin-right: 16rpx;
-}
-
-.notice-badges {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  flex: 1;
-  min-width: 0;
-}
-
-.notice-priority {
-  margin-left: 0;
-}
-
-.priority-text {
-  font-size: 20rpx;
-  font-weight: bold;
-  padding: 4rpx 8rpx;
-  border-radius: 8rpx;
-  white-space: nowrap;
-}
-
-.priority-text.priority-1 {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.1);
-}
-
-.priority-text.priority-2 {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
-}
-
-.priority-text.priority-3 {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.priority-text.priority-4 {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.priority-text.priority-5 {
-  color: #991b1b;
-  background: rgba(153, 27, 27, 0.1);
-}
-
-.notice-sticky-badge {
-  margin-left: 16rpx;
-  flex-shrink: 0;
-}
-
-.sticky-text {
-  font-size: 20rpx;
-  color: #8b5cf6;
-  font-weight: bold;
-  background: rgba(139, 92, 246, 0.1);
-  padding: 4rpx 8rpx;
-  border-radius: 8rpx;
-  white-space: nowrap;
-  border: 1rpx solid rgba(139, 92, 246, 0.3);
-}
-
-.notice-card.selected {
-  border: 2rpx solid #667eea;
-  background: rgba(102, 126, 234, 0.05);
-}
-
-.notice-card.sticky {
-  border-left-color: #8b5cf6;
-  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
-  position: relative;
-}
-
-.notice-card.sticky::before {
-  content: '置顶';
-  position: absolute;
-  top: 16rpx;
-  right: 16rpx;
-  background: #8b5cf6;
+.batch-btn.danger {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
   color: white;
-  font-size: 20rpx;
-  padding: 4rpx 8rpx;
-  border-radius: 8rpx;
-  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(231, 76, 60, 0.3);
 }
 
-.type-picker,
-.status-picker {
-  padding: 12rpx 16rpx;
-  background: #f8f9fa;
-  border-radius: 8rpx;
-  border: 1rpx solid #e9ecef;
-  font-size: 24rpx;
-  color: #333;
-  min-width: 120rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  transition: all 0.3s ease;
+.batch-btn.danger:active {
+  transform: translateY(2rpx);
+  box-shadow: 0 2rpx 8rpx rgba(231, 76, 60, 0.3);
 }
 
-.type-picker:hover,
-.status-picker:hover {
-  border-color: #667eea;
-  background: white;
-}
-
-.picker-text {
-  font-size: 24rpx;
-  color: #333;
-  white-space: nowrap;
-}
-
-/* 响应式设计 */
+/* 响应式适配 */
 @media (max-width: 750rpx) {
-  .toolbar {
+  .notices-list {
+    padding: 10rpx;
+  }
+  
+  .filter-section {
     flex-direction: column;
-    align-items: stretch;
-    gap: 16rpx;
+    gap: 15rpx;
   }
   
-  .toolbar-left,
-  .toolbar-right {
-    justify-content: center;
+  .action-buttons {
+    flex-direction: column;
   }
   
-  .search-box {
-    min-width: 100%;
-  }
-  
-  .action-btn {
-    flex: 1;
-    justify-content: center;
-  }
-  
-  .notice-card {
+  .notice-item {
+    flex-direction: column;
+    align-items: flex-start;
     padding: 20rpx;
+  }
+  
+  .notice-selector {
+    width: 100%;
+    margin-bottom: 16rpx;
+  }
+  
+  .notice-info {
+    padding: 0;
+    margin-bottom: 16rpx;
   }
   
   .notice-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12rpx;
-    min-height: auto;
   }
   
   .notice-badges {
-    width: 100%;
-    justify-content: flex-start;
+    order: -1;
   }
   
-  .notice-sticky-badge {
-    margin-left: 0;
-    margin-top: 8rpx;
+  .notice-status {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16rpx;
   }
   
   .notice-actions {
     width: 100%;
-    justify-content: flex-end;
-    margin-left: 0;
-    margin-top: 8rpx;
+    flex-direction: row;
+    justify-content: center;
+    gap: 12rpx;
   }
   
-  .action-btn-small {
-    padding: 8rpx 16rpx;
-    font-size: 22rpx;
+  .notice-actions .action-btn {
+    flex: 1;
+    max-width: 120rpx;
   }
 }
 
-/* 优先级选择弹窗样式 */
-.priority-picker-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 20000;
-}
-
-.priority-picker-content {
-  background: white;
-  border-radius: 16rpx;
-  width: 80%;
-  max-width: 500rpx;
-  max-height: 60vh;
-  overflow: hidden;
-}
-
-.priority-picker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.priority-picker-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.priority-picker-close {
-  background: none;
-  border: none;
-  font-size: 40rpx;
-  color: #999;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.priority-picker-list {
-  max-height: 400rpx;
-  overflow-y: auto;
-}
-
-.priority-picker-item {
-  display: flex;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f8f9fa;
-  transition: all 0.3s ease;
-}
-
-.priority-picker-item:last-child {
-  border-bottom: none;
-}
-
-.priority-picker-item:active {
-  background: #f8f9fa;
-}
-
-.priority-picker-item.active {
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.priority-picker-icon {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 8rpx;
-  margin-right: 20rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20rpx;
-  font-weight: bold;
-}
-
-.priority-picker-icon.priority-1 {
-  background: rgba(16, 185, 129, 0.2);
-  color: #10b981;
-}
-
-.priority-picker-icon.priority-2 {
-  background: rgba(245, 158, 11, 0.2);
-  color: #f59e0b;
-}
-
-.priority-picker-icon.priority-3 {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ef4444;
-}
-
-.priority-picker-icon.priority-4 {
-  background: rgba(220, 38, 38, 0.2);
-  color: #dc2626;
-}
-
-.priority-picker-icon.priority-5 {
-  background: rgba(153, 27, 27, 0.2);
-  color: #991b1b;
-}
-
-.priority-picker-name {
-  flex: 1;
-  font-size: 28rpx;
-  color: #333;
-}
-
-.priority-picker-check {
-  font-size: 32rpx;
-  color: #667eea;
-  font-weight: bold;
-}
-
-/* 时间选择器样式 */
-.time-picker-group {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-  margin-bottom: 20rpx;
-}
-
-.time-picker-item {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.time-label {
-  font-size: 26rpx;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 8rpx;
-}
-
-/* 时间选择弹窗样式 */
-.time-picker-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 30000;
-}
-
-.time-picker-content {
-  background: white;
-  border-radius: 16rpx;
-  width: 85%;
-  max-width: 500rpx;
-  max-height: 70vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.time-picker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-  flex-shrink: 0;
-}
-
-.time-picker-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.time-picker-close {
-  background: none;
-  border: none;
-  font-size: 40rpx;
-  color: #999;
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.time-picker-body {
-  padding: 30rpx;
-  flex: 1;
-  overflow-y: auto;
-  z-index: 50000;
-}
-
-.time-picker-section {
-  margin-bottom: 30rpx;
-}
-
-.time-picker-section:last-child {
-  margin-bottom: 0;
-}
-
-.time-picker-section-title {
-  font-size: 26rpx;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.time-picker-input {
-  padding: 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  font-size: 26rpx;
-  color: #333;
-  background: white;
-  text-align: center;
-  min-height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 30001;
-}
-
-.time-picker-input:active {
-  border-color: #007aff;
-  background: #f8f9ff;
-}
-
-/* 手写输入框样式 */
-.time-picker-input-text {
-  width: 100%;
-  padding: 24rpx 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  font-size: 28rpx;
-  color: #333;
-  background: white;
-  text-align: left;
-  min-height: 80rpx;
-  height: 80rpx;
-  line-height: 1.4;
-  transition: all 0.3s ease;
-  position: relative;
-  z-index: 30001;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-}
-
-.time-picker-input-text:focus {
-  border-color: #007aff;
-  background: #f8f9ff;
-  outline: none;
-}
-
-.time-picker-input-text::placeholder {
-  color: #999;
-  font-size: 26rpx;
-}
-
-.time-picker-hint {
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 12rpx;
-  display: block;
-  text-align: left;
-  line-height: 1.3;
-}
-
-
-/* Picker组件层级优化 */
-.time-picker-modal picker {
-  position: relative;
-  z-index: 30002;
-}
-
-.time-picker-modal picker-view {
-  position: relative;
-  z-index: 30002;
-}
-
-.time-picker-footer {
-  padding: 30rpx;
-  border-top: 1rpx solid #f0f0f0;
-  flex-shrink: 0;
-}
-
-.time-picker-btn {
-  width: 100%;
-  padding: 24rpx;
-  border: none;
-  border-radius: 12rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  font-size: 28rpx;
-  color: white;
-  font-weight: 500;
-}
-
-/* 复选框样式 */
-.checkbox-group {
-  display: flex;
-  gap: 20rpx;
-}
-
-.checkbox-option {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  font-size: 26rpx;
-  color: #333;
-  cursor: pointer;
-}
-
-.checkbox-option input[type="checkbox"] {
-  width: 32rpx;
-  height: 32rpx;
-  margin: 0;
-  accent-color: #667eea;
-}
-
-/* 单选框样式 */
-.status-options {
-  display: flex;
-  gap: 30rpx;
-}
-
-.status-option {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  font-size: 26rpx;
-  color: #333;
-  cursor: pointer;
-}
-
-.status-option input[type="radio"] {
-  width: 32rpx;
-  height: 32rpx;
-  margin: 0;
-  accent-color: #667eea;
-}
-
-/* 时间段设置样式 */
-.time-range-section {
-  margin-top: 16rpx;
-}
-
-.time-range-options {
-  display: flex;
-  gap: 30rpx;
-  margin-bottom: 20rpx;
-}
-
-.time-option {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-  font-size: 26rpx;
-  color: #333;
-  cursor: pointer;
-}
-
-.time-option input[type="radio"] {
-  width: 32rpx;
-  height: 32rpx;
-  margin: 0;
-  accent-color: #667eea;
-}
-
-.time-range-inputs {
-  background: #f8f9fa;
-  border: 1rpx solid #e9ecef;
-  border-radius: 12rpx;
-  padding: 20rpx;
-}
-
-.date-input-group {
-  display: flex;
-  gap: 20rpx;
-  margin-bottom: 16rpx;
-}
-
-.date-input-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.date-label {
-  font-size: 24rpx;
-  color: #666;
-  font-weight: 500;
-}
-
-.date-picker {
-  width: 100%;
-}
-
-.date-picker-display {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 20rpx;
-  border: 1rpx solid #e9ecef;
-  border-radius: 8rpx;
-  font-size: 26rpx;
-  color: #333;
-  background: white;
-  min-height: 60rpx;
-  box-sizing: border-box;
-  transition: all 0.3s ease;
-}
-
-.date-picker-display:active {
-  border-color: #667eea;
-  background: #f8f9ff;
-}
-
-.date-picker-display text:first-child {
-  flex: 1;
-  color: #333;
-}
-
-.date-picker-display text:last-child {
-  color: #999;
-  font-size: 20rpx;
-}
-
-.time-hint {
-  font-size: 22rpx;
-  color: #999;
-  line-height: 1.4;
-  text-align: center;
-}
-
-/* 公告时间段显示样式 */
-.notice-time-range {
-  font-size: 22rpx;
-  color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.1);
-  padding: 4rpx 8rpx;
-  border-radius: 8rpx;
-  white-space: nowrap;
-  margin-top: 8rpx;
-  display: inline-block;
-}
-
-@media (max-width: 600rpx) {
-  .modal-content {
-    width: 95%;
-    max-height: 95vh;
-  }
-  
-  .modal-body {
-    padding: 20rpx;
-  }
-  
-  .date-input-group {
-    flex-direction: column;
-    gap: 15rpx;
-  }
-  
-  .time-range-options {
-    flex-direction: column;
-    gap: 15rpx;
-  }
-  
-  .form-group {
-    margin-bottom: 24rpx;
-  }
-}
-
-/* 小屏幕优化 */
-@media (max-width: 600rpx) {
-  .page-header {
-    padding: 20rpx;
-  }
-  
-  .header-title {
-    font-size: 32rpx;
-  }
-  
-  .toolbar {
-    padding: 16rpx 20rpx;
-  }
-  
-  .notice-card {
-    padding: 16rpx;
-  }
-  
-  .notice-title {
-    font-size: 28rpx;
-  }
-  
-  .notice-text {
-    font-size: 24rpx;
-  }
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

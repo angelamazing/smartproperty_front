@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoticeEditModal iOS 日期修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .code { 
+            background: #f8f9fa; 
+            padding: 5px 10px; 
+            border-radius: 4px; 
+            font-family: monospace; 
+            margin: 5px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🍎 NoticeEditModal iOS 日期修复测试</h1>
+    
+    <div class="test-section">
+        <h2>📋 测试说明</h2>
+        <p>这个测试页面模拟 NoticeEditModal 组件中的时间绑定功能，验证在 iOS 环境下的兼容性。</p>
+        <p><strong>主要测试场景：</strong></p>
+        <ul>
+            <li>formatDateForPicker 方法的 iOS 兼容性</li>
+            <li>日期选择器绑定功能</li>
+            <li>时间验证逻辑</li>
+            <li>错误处理机制</li>
+        </ul>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 核心功能测试</h2>
+        <button onclick="runFormatDateTests()">测试 formatDateForPicker</button>
+        <button onclick="runDateValidationTests()">测试日期验证</button>
+        <button onclick="runPickerSimulation()">模拟 Picker 交互</button>
+        <div id="testResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📱 Picker 模拟器</h2>
+        <div style="display: flex; gap: 20px; margin: 20px 0;">
+            <div>
+                <label>开始日期:</label><br>
+                <input type="date" id="startDatePicker" onchange="onStartDateChange(event)">
+                <div class="code">值: <span id="startDateValue">未选择</span></div>
+            </div>
+            <div>
+                <label>结束日期:</label><br>
+                <input type="date" id="endDatePicker" onchange="onEndDateChange(event)">
+                <div class="code">值: <span id="endDateValue">未选择</span></div>
+            </div>
+        </div>
+        <div id="pickerResults"></div>
+    </div>
+
+    <script>
+        // 模拟 IOSDateFix 工具类
+        class IOSDateFix {
+            static isIncompatibleFormat(dateString) {
+                if (!dateString || typeof dateString !== 'string') return false;
+                const patterns = [
+                    /(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{1,2}):(\d{1,2})\s*(AM|PM)/i,
+                    /(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{1,2})\s*(AM|PM)/i,
+                    /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/,
+                ];
+                return patterns.some(pattern => pattern.test(dateString.trim()));
+            }
+
+            static convertToCompatibleFormat(dateString) {
+                if (!dateString || typeof dateString !== 'string') return dateString;
+                let cleanString = dateString.trim();
+
+                // 处理 "9/13/2025, 5:39:15 PM" 格式
+                const ampmMatch = cleanString.match(/(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{1,2}):(\d{1,2})\s*(AM|PM)/i);
+                if (ampmMatch) {
+                    let [, month, day, year, hour, minute, second, ampm] = ampmMatch;
+                    let hour24 = parseInt(hour);
+                    if (ampm.toUpperCase() === 'PM' && hour24 !== 12) hour24 += 12;
+                    if (ampm.toUpperCase() === 'AM' && hour24 === 12) hour24 = 0;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${hour24.toString().padStart(2, '0')}:${minute.padStart(2, '0')}:${second.padStart(2, '0')}`;
+                }
+
+                // 处理 "9/13/2025" 格式
+                const dateMatch = cleanString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (dateMatch) {
+                    const [, month, day, year] = dateMatch;
+                    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                }
+
+                return dateString;
+            }
+
+            static safeCreateDate(input) {
+                if (input instanceof Date) {
+                    return isNaN(input.getTime()) ? null : input;
+                }
+                if (typeof input === 'number') {
+                    const date = new Date(input);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+                if (typeof input === 'string') {
+                    try {
+                        if (this.isIncompatibleFormat(input)) {
+                            const compatibleFormat = this.convertToCompatibleFormat(input);
+                            const date = new Date(compatibleFormat);
+                            return isNaN(date.getTime()) ? null : date;
+                        }
+                        const date = new Date(input);
+                        return isNaN(date.getTime()) ? null : date;
+                    } catch (error) {
+                        console.error('创建Date对象失败:', error);
+                        return null;
+                    }
+                }
+                return null;
+            }
+        }
+
+        // 模拟 TimeUtils
+        class TimeUtils {
+            static formatDate(date, format) {
+                if (!date) return '';
+                if (format === 'YYYY-MM-DD') {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                }
+                return date.toISOString();
+            }
+        }
+
+        // 模拟表单数据
+        let formData = {
+            startDate: '',
+            endDate: ''
+        };
+
+        // 修复后的 formatDateForPicker 方法
+        function formatDateForPicker(dateTime) {
+            if (!dateTime) return '';
+            
+            try {
+                // 🍎 使用iOS兼容的安全日期创建
+                const date = IOSDateFix.safeCreateDate(dateTime);
+                if (!date || isNaN(date.getTime())) {
+                    console.warn('⚠️ 无效的日期时间:', dateTime);
+                    return '';
+                }
+                
+                // 🎯 使用安全的格式化方法
+                return TimeUtils.formatDate(date, 'YYYY-MM-DD');
+            } catch (error) {
+                console.error('❌ formatDateForPicker 失败:', error, '输入:', dateTime);
+                return '';
+            }
+        }
+
+        // 修复后的日期变化处理
+        function onStartDateChange(e) {
+            try {
+                const dateValue = e.target ? e.target.value : e.detail.value;
+                console.log('📅 开始日期变更:', dateValue);
+                
+                if (dateValue && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                    formData.startDate = dateValue;
+                    document.getElementById('startDateValue').textContent = dateValue;
+                    updateResults('开始日期更新成功: ' + dateValue, 'success');
+                } else {
+                    console.warn('⚠️ 开始日期格式异常:', dateValue);
+                    formData.startDate = '';
+                    updateResults('开始日期格式异常: ' + dateValue, 'warning');
+                }
+            } catch (error) {
+                console.error('❌ 开始日期处理失败:', error);
+                formData.startDate = '';
+                updateResults('开始日期处理失败: ' + error.message, 'error');
+            }
+        }
+
+        function onEndDateChange(e) {
+            try {
+                const dateValue = e.target ? e.target.value : e.detail.value;
+                console.log('📅 结束日期变更:', dateValue);
+                
+                if (dateValue && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+                    formData.endDate = dateValue;
+                    document.getElementById('endDateValue').textContent = dateValue;
+                    updateResults('结束日期更新成功: ' + dateValue, 'success');
+                } else {
+                    console.warn('⚠️ 结束日期格式异常:', dateValue);
+                    formData.endDate = '';
+                    updateResults('结束日期格式异常: ' + dateValue, 'warning');
+                }
+            } catch (error) {
+                console.error('❌ 结束日期处理失败:', error);
+                formData.endDate = '';
+                updateResults('结束日期处理失败: ' + error.message, 'error');
+            }
+        }
+
+        // 测试函数
+        function runFormatDateTests() {
+            const testCases = [
+                "9/13/2025, 5:39:15 PM",
+                "2025-09-13T17:39:15.000Z",
+                "2025-09-13",
+                "9/13/2025",
+                "invalid-date",
+                "",
+                null
+            ];
+
+            let results = '<h3>📊 formatDateForPicker 测试结果</h3>';
+            
+            testCases.forEach((testCase, index) => {
+                try {
+                    const result = formatDateForPicker(testCase);
+                    const status = result ? 'success' : 'warning';
+                    results += `<div class="test-result ${status}">
+                        <strong>测试 ${index + 1}:</strong> 
+                        <div class="code">输入: ${JSON.stringify(testCase)}</div>
+                        <div class="code">输出: ${JSON.stringify(result)}</div>
+                    </div>`;
+                } catch (error) {
+                    results += `<div class="test-result error">
+                        <strong>测试 ${index + 1} 失败:</strong> 
+                        <div class="code">输入: ${JSON.stringify(testCase)}</div>
+                        <div class="code">错误: ${error.message}</div>
+                    </div>`;
+                }
+            });
+
+            document.getElementById('testResults').innerHTML = results;
+        }
+
+        function runDateValidationTests() {
+            const testCases = [
+                { start: '2025-01-01', end: '2025-01-02', expected: true },
+                { start: '2025-01-02', end: '2025-01-01', expected: false },
+                { start: '2025-01-01', end: '2025-01-01', expected: true },
+                { start: '2025-01-01', end: '', expected: true },
+                { start: '', end: '2025-01-01', expected: true },
+                { start: '', end: '', expected: false }
+            ];
+
+            let results = '<h3>🔍 日期验证测试结果</h3>';
+            
+            testCases.forEach((testCase, index) => {
+                const originalStart = formData.startDate;
+                const originalEnd = formData.endDate;
+                
+                formData.startDate = testCase.start;
+                formData.endDate = testCase.end;
+                
+                const result = isTimeRangeValid();
+                const status = result === testCase.expected ? 'success' : 'error';
+                
+                results += `<div class="test-result ${status}">
+                    <strong>测试 ${index + 1}:</strong> 
+                    <div class="code">开始: ${testCase.start || '空'} → 结束: ${testCase.end || '空'}</div>
+                    <div class="code">期望: ${testCase.expected}, 实际: ${result}</div>
+                </div>`;
+                
+                // 恢复原始值
+                formData.startDate = originalStart;
+                formData.endDate = originalEnd;
+            });
+
+            document.getElementById('testResults').innerHTML = results;
+        }
+
+        function runPickerSimulation() {
+            let results = '<h3>🖱️ Picker 交互模拟</h3>';
+            results += `<div class="test-result success">
+                <p>请使用上方的日期选择器进行交互测试。选择日期后，会自动调用修复后的日期处理方法。</p>
+                <div class="code">当前开始日期: ${formData.startDate || '未设置'}</div>
+                <div class="code">当前结束日期: ${formData.endDate || '未设置'}</div>
+                <div class="code">时间范围有效性: ${isTimeRangeValid()}</div>
+            </div>`;
+            document.getElementById('testResults').innerHTML = results;
+        }
+
+        function isTimeRangeValid() {
+            // 非永久公告必须至少填写一个日期
+            if (!formData.startDate && !formData.endDate) {
+                return false;
+            }
+            
+            // 如果同时填写了开始和结束日期，需要验证顺序
+            if (formData.startDate && formData.endDate) {
+                try {
+                    const startDate = IOSDateFix.safeCreateDate(formData.startDate);
+                    const endDate = IOSDateFix.safeCreateDate(formData.endDate);
+                    
+                    if (startDate && endDate) {
+                        return startDate <= endDate;
+                    }
+                    
+                    return formData.startDate <= formData.endDate;
+                } catch (error) {
+                    return formData.startDate <= formData.endDate;
+                }
+            }
+            
+            return true;
+        }
+
+        function updateResults(message, type) {
+            const resultsDiv = document.getElementById('pickerResults');
+            const timestamp = new Date().toLocaleTimeString();
+            resultsDiv.innerHTML += `<div class="test-result ${type}">
+                [${timestamp}] ${message}
+            </div>`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        // 页面加载完成后运行基础测试
+        window.onload = function() {
+            updateResults('🍎 NoticeEditModal iOS 日期修复测试环境已就绪', 'success');
+            updateResults('请点击测试按钮或使用日期选择器进行交互测试', 'success');
+        };
+    </script>
+</body>
+</html>

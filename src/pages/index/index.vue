@@ -111,13 +111,17 @@
 
 
 
-    <!-- 系统公告 -->
-    <SystemNotice 
-      :notice="systemNotice" 
-      :show-notice="showSystemNotice"
+    <!-- 系统公告轮播 -->
+    <NoticeSwiper 
+      :notices="systemNotices" 
+      :show-notices="showSystemNotice"
       :closable="false"
       :refreshable="true"
-      @refresh="refreshSystemNotice"
+      :autoplay="true"
+      :autoplay-interval="6000"
+      @refresh="refreshSystemNotices"
+      @view-details="viewNoticeDetails"
+      @change="onNoticeChange"
     />
 
     <!-- 加载状态 -->
@@ -133,7 +137,7 @@
 import auth from '@/utils/auth.js'
 import api from '@/utils/api.js'
 import UserAvatar from '@/components/UserAvatar.vue'
-import SystemNotice from '@/components/SystemNotice.vue'
+import NoticeSwiper from '@/components/NoticeSwiper.vue'
 import TimeUtils from '@/utils/timeUtils.js'
 import timeMixin from '@/mixins/timeMixin.js'
 
@@ -142,15 +146,16 @@ export default {
   mixins: [timeMixin],
   components: {
     UserAvatar,
-    SystemNotice
+    NoticeSwiper
   },
   data() {
     return {
       userInfo: {},
       todayStats: {},
-      systemNotice: null,
+      systemNotices: [], // 改为公告列表
       isLoading: true,
-        showSystemNotice: true // 是否显示系统公告
+      showSystemNotice: true, // 是否显示系统公告
+      currentNoticeIndex: 0 // 当前显示的公告索引
     }
   },
 
@@ -235,13 +240,13 @@ export default {
         this.loadNotificationSettings()
         
         // 并行加载各项数据
-        const [stats, notice] = await Promise.all([
+        const [stats, notices] = await Promise.all([
           this.loadTodayStats(),
-            this.loadSystemNotice()
+          this.loadSystemNotices()
         ])
 
         this.todayStats = stats
-        this.systemNotice = notice
+        this.systemNotices = notices
       } catch (error) {
         console.error('加载页面数据失败:', error)
       }
@@ -283,38 +288,49 @@ export default {
 
 
     /**
-     * 加载系统公告
+     * 加载系统公告列表
      */
-      async loadSystemNotice() {
+    async loadSystemNotices() {
       try {
+        console.log('🔄 开始加载系统公告列表...')
+        
         // 使用新的公告管理接口获取已发布的公告
         const result = await api.admin.getNotices({
           status: 'published',
           page: 1,
-          limit: 1,
-          sortBy: 'priority',
+          limit: 10, // 获取最多10个公告
+          sortBy: 'priority,createTime', // 先按优先级排序，再按创建时间排序
           sortOrder: 'desc'
         })
         
+        console.log('📄 公告API返回结果:', result)
+        
         // 处理API返回的数据结构
         if (result.success && result.data && result.data.records && result.data.records.length > 0) {
-          const notice = result.data.records[0]
-          
-          // 映射到    SystemNotice,组件期望的格式
-          return {
+          const notices = result.data.records.map(notice => ({
+            id: notice.id,
             title: notice.title || '系统公告',
             content: notice.content || '暂无公告内容',
-            time: notice.createTime || notice.publishTime || this.$getCurrentTimestamp(),
+            time: notice.createTime || notice.publishTime || notice.updateTime,
+            createTime: notice.createTime,
+            publishTime: notice.publishTime, 
+            updateTime: notice.updateTime,
             type: notice.type || 'info',
             priority: notice.priority || 1,
-            isSticky: notice.isSticky || false
-          }
+            isSticky: notice.isSticky || false,
+            status: notice.status,
+            viewCount: notice.viewCount || 0
+          }))
+          
+          console.log(`✅ 成功加载 ${notices.length} 个公告:`, notices.map(n => n.title))
+          return notices
         }
         
-        return null
+        console.log('📭 没有找到已发布的公告')
+        return []
       } catch (error) {
-        console.error('加载公告失败:', error)
-        return null
+        console.error('❌ 加载公告列表失败:', error)
+        return []
       }
     },
 
@@ -344,19 +360,20 @@ export default {
     },
 
     /**
-     * 刷新系统公告
+     * 刷新系统公告列表
      */
-      async refreshSystemNotice() {
-        try {
-          const notice = await this.loadSystemNotice()
-        this.systemNotice = notice
+    async refreshSystemNotices() {
+      try {
+        console.log('🔄 刷新系统公告列表...')
+        const notices = await this.loadSystemNotices()
+        this.systemNotices = notices
         
         uni.showToast({
-          title: '公告已刷新',
+          title: `已刷新 ${notices.length} 个公告`,
           icon: 'success'
         })
       } catch (error) {
-        console.error('刷新公告失败:', error)
+        console.error('❌ 刷新公告失败:', error)
         uni.showToast({
           title: '刷新失败',
           icon: 'error'
@@ -367,6 +384,34 @@ export default {
 
 
 
+
+    /**
+     * 公告切换事件
+     */
+    onNoticeChange(index, notice) {
+      this.currentNoticeIndex = index
+      console.log(`📄 切换到公告 ${index + 1}:`, notice.title)
+    },
+
+    /**
+     * 查看公告详情
+     */
+    viewNoticeDetails(notice) {
+      console.log('👁️ 查看公告详情:', notice)
+      
+      // 可以跳转到公告详情页面或显示详情弹窗
+      uni.showModal({
+        title: notice.title,
+        content: notice.content,
+        showCancel: false,
+        confirmText: '知道了'
+      })
+      
+      // 或者跳转到公告管理页面（如果用户有权限）
+      // uni.navigateTo({
+      //   url: '/pages/admin/notices'
+      // })
+    },
 
     // debug用户信息 method removed - debug functionality simplified
 

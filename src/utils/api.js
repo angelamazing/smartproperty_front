@@ -864,17 +864,32 @@ export default {
     sendNotification: (notificationData) => api.post('/api/admin/notifications', notificationData),
     getNotificationHistory: (params = {}) => api.get('/api/admin/notifications/history', params),
     
-    // 公告管理
-    getNotices: (params = {}) => api.get('/api/admin/notices', params),
-    getNoticeById: (noticeId) => api.get(`/api/admin/notices/${noticeId}`),
+    // 公告管理 - 完全按照接口文档v4/公告文档.md实现
+    // 1. 创建公告 - POST /api/admin/notices
     createNotice: (noticeData) => api.post('/api/admin/notices', noticeData),
+    
+    // 2. 更新公告 - PUT /api/admin/notices/:noticeId  
     updateNotice: (noticeId, noticeData) => api.put(`/api/admin/notices/${noticeId}`, noticeData),
+    
+    // 3. 获取公告列表 - GET /api/admin/notices
+    getNotices: (params = {}) => api.get('/api/admin/notices', params),
+    getNoticesList: (params = {}) => api.get('/api/admin/notices', params), // 别名，与页面代码保持一致
+    
+    // 其他公告相关接口（非文档规范，为项目完整性保留）
+    getNoticeById: (noticeId) => api.get(`/api/admin/notices/${noticeId}`),
     deleteNotice: (noticeId) => api.delete(`/api/admin/notices/${noticeId}`),
+    
+    // 状态更新使用通用更新接口（按文档规范）
+    updateNoticeStatus: (noticeId, status) => api.put(`/api/admin/notices/${noticeId}`, { status }),
+    
+    // 批量操作（非文档规范，但项目需要）
     batchDeleteNotices: (noticeIds) => api.post('/api/admin/notices/batch-delete', { noticeIds }),
+    batchUpdateNoticeStatus: (noticeIds, status) => api.put('/api/admin/notices/batch/status', { noticeIds, status }),
+    
+    // 发布状态管理（非文档规范，但项目需要）
     publishNotice: (noticeId) => api.post(`/api/admin/notices/${noticeId}/publish`),
     unpublishNotice: (noticeId) => api.post(`/api/admin/notices/${noticeId}/unpublish`),
     archiveNotice: (noticeId) => api.post(`/api/admin/notices/${noticeId}/archive`),
-    updateNoticeStatus: (noticeId, status) => api.put(`/api/admin/notices/${noticeId}/status`, { status }),
     
     // 系统通知 - 使用新的公告管理接口
     getSystemNotice: (params = {}) => api.get('/api/admin/notices', {
