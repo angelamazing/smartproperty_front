@@ -156,6 +156,26 @@
             </view>
 
             <view class="form-item">
+              <text class="form-label">餐次类型 *</text>
+              <view class="meal-type-grid">
+                <view 
+                  v-for="mealType in mealTypeOptions" 
+                  :key="mealType.value"
+                  class="meal-type-item"
+                  :class="{ 'selected': formData.mealTypes.includes(mealType.value) }"
+                  @click="toggleMealType(mealType.value)"
+                >
+                  <view class="meal-type-checkbox">
+                    <view class="checkbox" :class="{ 'checked': formData.mealTypes.includes(mealType.value) }">
+                      <view v-if="formData.mealTypes.includes(mealType.value)" class="checkbox-check">✓</view>
+                    </view>
+                  </view>
+                  <text class="meal-type-name">{{ mealType.name }}</text>
+                </view>
+              </view>
+            </view>
+
+            <view class="form-item">
               <text class="form-label">菜品状态</text>
               <view class="status-options">
                 <view class="status-option" :class="{ 'selected': formData.status === 'active' }" @click="setDishStatus('active')">
@@ -283,7 +303,8 @@ export default {
         image: '',
         isRecommended: false,
         tags: [],
-        status: 'active'
+        status: 'active',
+        mealTypes: ['breakfast', 'lunch', 'dinner'] // 默认全餐次，提交时转换为meal_types
       },
       newTag: '',
       showNutritionModal: false,
@@ -347,7 +368,16 @@ export default {
     can保存() {
       return this.formData.name.trim() && 
              this.formData.categoryId && 
-             this.formData.price > 0
+             this.formData.price > 0 &&
+             this.formData.mealTypes.length > 0
+    },
+    
+    mealTypeOptions() {
+      return [
+        { value: 'breakfast', name: '早餐' },
+        { value: 'lunch', name: '午餐' },
+        { value: 'dinner', name: '晚餐' }
+      ]
     }
   },
   watch: {
@@ -393,6 +423,14 @@ export default {
         this.formData.isRecommended = dishData.isRecommended || dishData.recommended || false
         this.formData.tags = Array.isArray(dishData.tags) ? [...dishData.tags] : []
         this.formData.status = dishData.status || 'active'
+        // 处理餐次类型数据，优先使用meal_types，兼容mealTypes
+        if (Array.isArray(dishData.meal_types)) {
+          this.formData.mealTypes = [...dishData.meal_types]
+        } else if (Array.isArray(dishData.mealTypes)) {
+          this.formData.mealTypes = [...dishData.mealTypes]
+        } else {
+          this.formData.mealTypes = ['breakfast', 'lunch', 'dinner']
+        }
       } else {
         // 新建模式 - 逐个重置属性，保持响应性
         this.formData.name = ''
@@ -407,6 +445,7 @@ export default {
         this.formData.isRecommended = false
         this.formData.tags = []
         this.formData.status = 'active'
+        this.formData.mealTypes = ['breakfast', 'lunch', 'dinner']
       }
       
       console.log('表单数据初始化完成', this.formData)
@@ -481,6 +520,17 @@ export default {
     setDishStatus(status) {
       this.formData.status = status;
       console.log('设置菜品状态:', status)
+    },
+
+    // 餐次类型切换
+    toggleMealType(mealType) {
+      const index = this.formData.mealTypes.indexOf(mealType)
+      if (index > -1) {
+        this.formData.mealTypes.splice(index, 1)
+      } else {
+        this.formData.mealTypes.push(mealType)
+      }
+      console.log('切换餐次类型:', mealType, '当前餐次类型:', this.formData.mealTypes)
     },
 
     // 标签管理
@@ -588,6 +638,15 @@ export default {
         }
         return
       }
+      
+      // 餐次类型验证
+      if (!this.formData.mealTypes || this.formData.mealTypes.length === 0) {
+        uni.showToast({
+          title: '请至少选择一个餐次类型',
+          icon: 'none'
+        })
+        return
+      }
 
       const dishData = {
         name: this.formData.name.trim(),
@@ -601,7 +660,9 @@ export default {
         image: this.formData.image || undefined,
         isRecommended: this.formData.isRecommended,
         tags: this.formData.tags,
-        status: this.formData.status
+        status: this.formData.status,
+        // 根据接口文档，请求时使用mealTypes，但确保兼容性
+        mealTypes: this.formData.mealTypes
       }
 
       this.$emit('save', dishData)
@@ -1013,6 +1074,64 @@ export default {
   color: #666;
 }
 
+/* 餐次类型选择样式 */
+.meal-type-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+  margin-top: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.meal-type-item {
+  display: flex;
+  align-items: center;
+  padding: 16rpx;
+  background: #f8f9fa;
+  border: 2rpx solid #e9ecef;
+  border-radius: 8rpx;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.meal-type-item.selected {
+  background: #e3f2fd;
+  border-color: #667eea;
+}
+
+.meal-type-checkbox {
+  margin-right: 12rpx;
+}
+
+.checkbox {
+  width: 32rpx;
+  height: 32rpx;
+  border: 2rpx solid #ddd;
+  border-radius: 4rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.checkbox.checked {
+  border-color: #667eea;
+  background: #667eea;
+}
+
+.checkbox-check {
+  color: white;
+  font-size: 20rpx;
+  font-weight: bold;
+}
+
+.meal-type-name {
+  font-size: 26rpx;
+  color: #333;
+  flex: 1;
+}
+
 /* 状态选择样式 */
 .status-options {
   display: flex;
@@ -1106,6 +1225,10 @@ export default {
   
   .category-grid {
     grid-template-columns: 1fr 1fr;
+  }
+  
+  .meal-type-grid {
+    grid-template-columns: 1fr;
   }
   
   .status-options {

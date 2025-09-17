@@ -56,6 +56,51 @@
             {{ selectedRecommendIndex >= 0 ? recommendOptions[selectedRecommendIndex].name : '推荐状态' }}
           </view>
         </picker>
+
+        <picker 
+          class="filter-picker" 
+          :value="selectedMealTypeIndex" 
+          :range="mealTypeOptions" 
+          range-key="name"
+          @change="onMealTypeChange"
+        >
+          <view class="picker-text">
+            {{ selectedMealTypeIndex >= 0 ? mealTypeOptions[selectedMealTypeIndex].name : '全部餐次' }}
+          </view>
+        </picker>
+      </view>
+
+      <!-- 快速筛选按钮 -->
+      <view class="quick-filter-section">
+        <text class="quick-filter-label">快速筛选：</text>
+        <button 
+          class="quick-filter-btn" 
+          :class="{ 'active': getCurrentMealTypeFilter() === '' }"
+          @click="quickFilterByMealType('')"
+        >
+          全部
+        </button>
+        <button 
+          class="quick-filter-btn" 
+          :class="{ 'active': getCurrentMealTypeFilter() === 'breakfast' }"
+          @click="quickFilterByMealType('breakfast')"
+        >
+          早餐
+        </button>
+        <button 
+          class="quick-filter-btn" 
+          :class="{ 'active': getCurrentMealTypeFilter() === 'lunch' }"
+          @click="quickFilterByMealType('lunch')"
+        >
+          午餐
+        </button>
+        <button 
+          class="quick-filter-btn" 
+          :class="{ 'active': getCurrentMealTypeFilter() === 'dinner' }"
+          @click="quickFilterByMealType('dinner')"
+        >
+          晚餐
+        </button>
       </view>
 
       <!-- 操作按钮 -->
@@ -86,12 +131,13 @@
       <view v-else class="dishes-list">
         <!-- 列表头部 -->
           <view class="list-header">
-            <checkbox 
-              class="select-all-checkbox" 
-              :checked="isAllSelected"
-              @change="toggleSelectAll"
-              value="all"
-            />
+            <checkbox-group @change="toggleSelectAll">
+              <checkbox 
+                class="select-all-checkbox" 
+                value="all"
+                :checked="isAllSelected"
+              />
+            </checkbox-group>
             <text class="header-label">全选</text>
             <text class="dish-count">共 {{ total }} 道菜品</text>
           </view>
@@ -105,12 +151,12 @@
         >
           <!-- 选择框 -->
           <view class="dish-selector">
-            <checkbox 
-              :value="dish._id || dish.id"
-              :checked="selectedDishes.includes(dish._id || dish.id)"
-              @change="onDishSelect"
-              :data-id="dish._id || dish.id"
-            />
+            <checkbox-group @change="onDishSelect" :data-id="dish._id || dish.id">
+              <checkbox 
+                :value="dish._id || dish.id"
+                :checked="selectedDishes.includes(dish._id || dish.id)"
+              />
+            </checkbox-group>
           </view>
 
           <!-- 菜品信息 -->
@@ -128,6 +174,11 @@
               <view class="dish-extra">
                 <text v-if="dish.calories" class="nutrition-info">{{ dish.calories }}kcal</text>
                 <text v-if="dish.isRecommended" class="recommend-tag">推荐</text>
+                <view v-if="dish.meal_types && dish.meal_types.length > 0" class="meal-types">
+                  <text v-for="mealType in dish.meal_types" :key="mealType" class="meal-type-tag">
+                    {{ getMealTypeText(mealType) }}
+                  </text>
+                </view>
                 <view class="dish-status" :class="getStatusClass(dish.status)">
                   <text class="status-text">{{ getStatusText(dish.status) }}</text>
                 </view>
@@ -213,6 +264,7 @@ export default {
       selectedCategoryIndex: -1,
       selectedStatusIndex: -1,
       selectedRecommendIndex: -1,
+      selectedMealTypeIndex: -1,
       
       // 分页
       currentPage: 1,
@@ -270,6 +322,15 @@ export default {
         { value: 'true', name: '推荐菜品' },
         { value: 'false', name: '普通菜品' }
       ]
+    },
+    
+    mealTypeOptions() {
+      return [
+        { value: '', name: '全部餐次' },
+        { value: 'breakfast', name: '早餐' },
+        { value: 'lunch', name: '午餐' },
+        { value: 'dinner', name: '晚餐' }
+      ]
     }
   },
   
@@ -307,7 +368,8 @@ export default {
           keyword: this.searchKeyword.trim(),
           categoryId: this.selectedCategoryIndex > 0 ? this.categoryOptions[this.selectedCategoryIndex].id : '',
           status: this.selectedStatusIndex > 0 ? this.statusOptions[this.selectedStatusIndex].value : '',
-          isRecommended: this.selectedRecommendIndex > 0 ? this.recommendOptions[this.selectedRecommendIndex].value : ''
+          isRecommended: this.selectedRecommendIndex > 0 ? this.recommendOptions[this.selectedRecommendIndex].value : '',
+          mealType: this.selectedMealTypeIndex > 0 ? this.mealTypeOptions[this.selectedMealTypeIndex].value : ''
         }
         
         const response = await api.admin.getDishesList(params)
@@ -367,6 +429,24 @@ export default {
       this.loadDishes()
     },
 
+    onMealTypeChange(e) {
+      this.selectedMealTypeIndex = e.detail.value
+      this.currentPage = 1
+      this.loadDishes()
+    },
+
+    // 快速筛选方法
+    quickFilterByMealType(mealType) {
+      if (mealType === '') {
+        this.selectedMealTypeIndex = 0
+      } else {
+        const index = this.mealTypeOptions.findIndex(option => option.value === mealType)
+        this.selectedMealTypeIndex = index >= 0 ? index : 0 // 防止找不到时返回-1
+      }
+      this.currentPage = 1
+      this.loadDishes()
+    },
+
     // 分页
     changePage(page) {
       this.currentPage = page
@@ -375,9 +455,10 @@ export default {
 
     // 选择操作
     toggleSelectAll(e) {
-      // 在uni-app中，checkbox的change事件返回的是一个对象，需要从e.detail.value获取选中状态
-      // 这里需要检查e.detail.value是否存在且为非空数组，来判断是否为选中状态
-      const isChecked = e.detail.value && e.detail.value.length > 0
+      // 在微信小程序中，checkbox-group的change事件返回选中的value数组
+      const checkedValues = e.detail.value || []
+      const isChecked = checkedValues.includes('all')
+      
       if (isChecked) {
         this.selectedDishes = this.dishes.map(dish => dish._id || dish.id)
       } else {
@@ -386,16 +467,13 @@ export default {
     },
 
     onDishSelect(e) {
-      // 在uni-app中，checkbox的change事件返回的e.detail.value是一个数组
-      // 当选中时数组包含当前checkbox的值，未选中时为空数组
-      const dishIds = e.detail.value
-      // 由于我们只有一个checkbox，所以如果数组不为空，说明选中了当前菜品
-      const isSelected = dishIds && dishIds.length > 0
-      const dishId = dishIds[0] || e.currentTarget.dataset.id
+      // 在微信小程序中，checkbox-group的change事件返回选中的value数组
+      const checkedValues = e.detail.value || []
+      const dishId = e.currentTarget.dataset.id
       
-      if (isSelected && !this.selectedDishes.includes(dishId)) {
+      if (checkedValues.includes(dishId) && !this.selectedDishes.includes(dishId)) {
         this.selectedDishes.push(dishId)
-      } else if (!isSelected && this.selectedDishes.includes(dishId)) {
+      } else if (!checkedValues.includes(dishId) && this.selectedDishes.includes(dishId)) {
         this.selectedDishes = this.selectedDishes.filter(id => id !== dishId)
       }
     },
@@ -514,21 +592,17 @@ export default {
         })
         
         if (result.confirm) {
-          for (const dishId of this.selectedDishes) {
-            try {
-              await api.admin.deleteDish(dishId)
-            } catch (error) {
-              console.error(`删除菜品 ${dishId} 失败:`, error)
-            }
+          // 使用批量删除接口
+          const response = await api.admin.batchDeleteDishes(this.selectedDishes)
+          if (response && response.success) {
+            uni.showToast({
+              title: '批量删除成功',
+              icon: 'success'
+            })
+            this.selectedDishes = []
+            this.closeBatchModal()
+            this.loadDishes()
           }
-          
-          uni.showToast({
-            title: '批量删除成功',
-            icon: 'success'
-          })
-          this.selectedDishes = []
-          this.closeBatchModal()
-          this.loadDishes()
         }
       } catch (error) {
         console.error('批量删除失败:', error)
@@ -582,6 +656,22 @@ export default {
     viewDishDetail(dish) {
       // 查看菜品详情
       console.log('查看菜品详情:', dish)
+    },
+
+    getMealTypeText(mealType) {
+      const mealTypeMap = {
+        'breakfast': '早餐',
+        'lunch': '午餐',
+        'dinner': '晚餐'
+      }
+      return mealTypeMap[mealType] || mealType
+    },
+
+    getCurrentMealTypeFilter() {
+      if (this.selectedMealTypeIndex > 0 && this.selectedMealTypeIndex < this.mealTypeOptions.length) {
+        return this.mealTypeOptions[this.selectedMealTypeIndex].value
+      }
+      return ''
     }
   }
 }
@@ -679,6 +769,40 @@ export default {
 
 .picker-text {
   color: #666;
+}
+
+.quick-filter-section {
+  display: flex;
+  align-items: center;
+  gap: 15rpx;
+  margin-top: 20rpx;
+  flex-wrap: wrap;
+}
+
+.quick-filter-label {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.quick-filter-btn {
+  padding: 12rpx 24rpx;
+  background: #f8f9fa;
+  color: #666;
+  border: 2rpx solid #e9ecef;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.quick-filter-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.quick-filter-btn:active {
+  transform: scale(0.95);
 }
 
 .action-buttons {
@@ -902,6 +1026,21 @@ export default {
   padding: 6rpx 12rpx;
   border-radius: 6rpx;
   font-size: 20rpx;
+  color: white;
+}
+
+.meal-types {
+  display: flex;
+  gap: 8rpx;
+  flex-wrap: wrap;
+  margin-right: 10rpx;
+}
+
+.meal-type-tag {
+  background: #667eea;
+  padding: 4rpx 10rpx;
+  border-radius: 4rpx;
+  font-size: 18rpx;
   color: white;
 }
 

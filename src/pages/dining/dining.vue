@@ -912,6 +912,13 @@ export default {
         console.log('菜单API响应:', result)
         
         if (result && result.success && result.data) {
+          // 检查菜单状态，过滤掉已撤销的菜单
+          if (result.data.publishStatus === 'revoked') {
+            console.log('菜单状态为已撤销，不显示该菜单:', result.data.publishStatus)
+            this.currentMenu = null
+            return
+          }
+          
           this.currentMenu = result.data
           console.log('菜单加载成功:', this.currentMenu)
           

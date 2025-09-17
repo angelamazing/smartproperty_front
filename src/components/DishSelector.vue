@@ -19,28 +19,39 @@
         <text class="search-icon">🔍</text>
       </view>
 
-      <!-- 分类筛选 -->
-      <view class="category-filter">
-        <scroll-view class="category-scroll" scroll-x>
-          <view class="category-list">
-            <view 
-              class="category-item" 
-              :class="{ active: selectedCategory === 'all' }"
-              @click="selectCategory('all')"
-            >
-              全部
-            </view>
-            <view 
-              v-for="category in categories" 
-              :key="category._id || category.id"
-              class="category-item"
-              :class="{ active: selectedCategory === (category._id || category.id) }"
-              @click="selectCategory(category._id || category.id)"
-            >
-              {{ category.name }}
-            </view>
+      <!-- 餐次筛选 -->
+      <view class="meal-type-filter">
+        <view class="filter-label">餐次筛选：</view>
+        <view class="meal-type-list">
+          <view 
+            class="meal-type-item" 
+            :class="{ active: selectedMealType === '' }"
+            @click="selectMealType('')"
+          >
+            全部
           </view>
-        </scroll-view>
+          <view 
+            class="meal-type-item" 
+            :class="{ active: selectedMealType === 'breakfast' }"
+            @click="selectMealType('breakfast')"
+          >
+            早餐
+          </view>
+          <view 
+            class="meal-type-item" 
+            :class="{ active: selectedMealType === 'lunch' }"
+            @click="selectMealType('lunch')"
+          >
+            午餐
+          </view>
+          <view 
+            class="meal-type-item" 
+            :class="{ active: selectedMealType === 'dinner' }"
+            @click="selectMealType('dinner')"
+          >
+            晚餐
+          </view>
+        </view>
       </view>
 
       <!-- 菜品列表 -->
@@ -86,6 +97,15 @@
             <view class="dish-info">
               <text class="dish-name">{{ dish.name }}</text>
               <text class="dish-category">{{ dish.categoryName || '未分类' }}</text>
+              <view v-if="dish.meal_types && dish.meal_types.length > 0" class="meal-types">
+                <text 
+                  v-for="mealType in dish.meal_types" 
+                  :key="mealType" 
+                  class="meal-type-tag"
+                >
+                  {{ getMealTypeText(mealType) }}
+                </text>
+              </view>
               <text class="dish-price">¥{{ formatPrice(dish.price) }}</text>
             </view>
           </view>
@@ -127,9 +147,8 @@ export default {
       loading: false,
       error: '',
       dishes: [],
-      categories: [],
       searchKeyword: '',
-      selectedCategory: 'all',
+      selectedMealType: '',
       selectedDishes: []
     }
   },
@@ -137,10 +156,10 @@ export default {
     filteredDishes() {
       let filtered = this.dishes
       
-      // 分类筛选
-      if (this.selectedCategory !== 'all') {
+      // 餐次筛选
+      if (this.selectedMealType !== '') {
         filtered = filtered.filter(dish => 
-          dish.categoryId === this.selectedCategory
+          dish.meal_types && dish.meal_types.includes(this.selectedMealType)
         )
       }
       
@@ -166,7 +185,6 @@ export default {
       if (newVal) {
         this.initializeSelector()
         this.loadDishes()
-        this.loadCategories()
       }
     },
     selectedDishIds: {
@@ -233,21 +251,9 @@ export default {
       }
     },
 
-    // 加载分类列表
-    async loadCategories() {
-      try {
-        const response = await api.admin.getDishCategories()
-        if (response.success && response.data) {
-          this.categories = response.data
-        }
-      } catch (error) {
-        console.error('加载分类失败:', error)
-      }
-    },
-
-    // 选择分类
-    selectCategory(categoryId) {
-      this.selectedCategory = categoryId
+    // 选择餐次
+    selectMealType(mealType) {
+      this.selectedMealType = mealType
     },
 
     // 搜索菜品
@@ -305,6 +311,16 @@ export default {
     formatPrice(price) {
       if (!price && price !== 0) return '0.00'
       return parseFloat(price).toFixed(2)
+    },
+
+    // 获取餐次中文名称
+    getMealTypeText(mealType) {
+      const mealTypeMap = {
+        'breakfast': '早餐',
+        'lunch': '午餐', 
+        'dinner': '晚餐'
+      }
+      return mealTypeMap[mealType] || mealType
     }
   }
 }
@@ -395,21 +411,26 @@ export default {
   font-size: 16px;
 }
 
-.category-filter {
+
+.meal-type-filter {
   padding: 16px 20px;
   border-bottom: 1px solid #eee;
 }
 
-.category-scroll {
-  white-space: nowrap;
+.filter-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
-.category-list {
-  display: inline-flex;
+.meal-type-list {
+  display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
-.category-item {
+.meal-type-item {
   padding: 8px 16px;
   border: 1px solid #ddd;
   border-radius: 16px;
@@ -418,14 +439,15 @@ export default {
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
+  background-color: #fff;
 }
 
-.category-item:hover {
+.meal-type-item:hover {
   border-color: #667eea;
   color: #667eea;
 }
 
-.category-item.active {
+.meal-type-item.active {
   background-color: #667eea;
   border-color: #667eea;
   color: #fff;
@@ -528,6 +550,22 @@ export default {
   padding: 2px 8px;
   border-radius: 4px;
   align-self: flex-start;
+}
+
+.meal-types {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0;
+  flex-wrap: wrap;
+}
+
+.meal-type-tag {
+  font-size: 10px;
+  color: #fff;
+  background-color: #667eea;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 .dish-price {

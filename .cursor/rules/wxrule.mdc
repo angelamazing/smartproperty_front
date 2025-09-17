@@ -1,0 +1,7 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+你现在是在编写微信小程序，注意微信小程序兼容性和苹果手机时间兼容性

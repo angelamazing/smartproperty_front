@@ -109,6 +109,14 @@
       }
     },
     {
+      "path": "pages/admin/menu-detail",
+      "style": {
+        "navigationBarTitleText": "菜单详情",
+        "navigationBarBackgroundColor": "#667eea",
+        "navigationBarTextStyle": "white"
+      }
+    },
+    {
       "path": "pages/admin/users",
       "style": {
         "navigationBarTitleText": "人员管理",

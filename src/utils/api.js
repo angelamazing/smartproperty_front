@@ -738,22 +738,30 @@ export default {
     // 管理员更新用户头像
     updateUserAvatar: (userId, avatarUrl) => api.put('/api/admin/user/avatar', { userId, avatarUrl }),
     
-    // 菜单管理
-    getMenus: (params = {}) => api.get('/api/admin/menus', params),
-    getMenuByDate: (date, mealType) => api.get('/api/admin/menu/by-date', { date, mealType }),
-    getMenuDetail: (menuId) => api.get(`/api/admin/menu/${menuId}`),
+    // 菜单管理 - 严格按照接口文档规范
+    // 1. 保存菜单草稿
     saveMenuDraft: (menuData) => api.post('/api/admin/menu/draft', menuData),
+    
+    // 2. 发布菜单
     publishMenu: (menuData) => api.post('/api/admin/menu/publish', menuData),
-    updateMenu: (menuId, menuData) => api.put(`/api/admin/menu/${menuId}`, menuData),
+    
+    // 3. 获取菜单历史
     getMenuHistory: (params = {}) => api.get('/api/admin/menu/history', params),
-    getMenuTemplates: () => api.get('/api/admin/menu/templates'),
-    getMenuTemplate: (templateId) => api.get(`/api/admin/menu/templates/${templateId}`),
-    createMenuTemplate: (templateData) => api.post('/api/admin/menu/templates', templateData),
-    updateMenuTemplate: (templateId, templateData) => api.put(`/api/admin/menu/templates/${templateId}`, templateData),
+    
+    // 4. 根据日期和餐次获取菜单
+    getMenuByDate: (date, mealType) => api.get('/api/admin/menu/by-date', { date, mealType }),
+    
+    // 5. 撤回菜单
     revokeMenu: (menuId) => api.put(`/api/admin/menu/${menuId}/revoke`),
-    deleteMenuTemplate: (templateId) => api.delete(`/api/admin/menu/templates/${templateId}`),
+    
+    // 6. 获取菜单的菜品列表
     getMenuDishes: (menuId) => api.get(`/api/admin/menu/${menuId}/dishes`),
-    setMenuDishes: (menuId, dishItems) => api.post(`/api/admin/menu/${menuId}/dishes`, { dishItems }),
+    
+    // 7. 批量获取菜品详情
+    getDishesDetails: (dishIds) => api.post('/api/admin/dishes/batch', { dishIds }),
+    
+    // 8. 删除菜单（仅草稿状态）
+    deleteMenu: (menuId) => api.delete(`/api/admin/menu/${menuId}`),
 
     // 角色管理
     getRolesList: () => api.get('/api/admin/roles'),
@@ -780,6 +788,11 @@ export default {
     updateDish: (dishId, dishData) => api.put(`/api/admin/dishes/${dishId}`, dishData),
     deleteDish: (dishId) => api.delete(`/api/admin/dishes/${dishId}`),
     batchUpdateDishStatus: (dishIds, status) => api.put('/api/admin/dishes/batch/status', { dishIds, status }),
+    batchDeleteDishes: (dishIds) => api.post('/api/admin/dishes/batch-delete', { dishIds }),
+    updateDishStatus: (dishId, status) => api.put(`/api/admin/dishes/${dishId}/status`, { status }),
+    
+    // 按餐次类型获取菜品
+    getDishesByMealType: (mealType, params = {}) => api.get(`/api/admin/dishes/meal/${mealType}`, params),
     uploadDishImage: (dishId, imageFile) => {
       const formData = new FormData()
       formData.append('image', imageFile)

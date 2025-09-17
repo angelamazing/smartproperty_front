@@ -2,12 +2,8 @@
   <view class="menu-history-page">
     <!-- 页面头部 -->
     <view class="page-header">
-      <text class="page-title">菜单历史</text>
-      <view class="header-actions">
-        <button @click="refreshData" class="refresh-btn">
-          <text class="btn-text">刷新</text>
-        </button>
-      </view>
+      <view class="header-title">菜单历史</view>
+      <view class="header-subtitle">查看和管理所有历史菜单记录</view>
     </view>
 
     <!-- 筛选条件 -->
@@ -21,9 +17,15 @@
             @change="onStartDateChange"
             class="date-picker"
           >
-            <view class="picker-text">{{ filterParams.startDate || '请选择' }}</view>
+            <view class="picker-display">
+              <text class="picker-text">
+                {{ filterParams.startDate || '选择开始日期' }}
+              </text>
+              <text class="picker-icon">📅</text>
+            </view>
           </picker>
         </view>
+        
         <view class="filter-item">
           <text class="filter-label">结束日期</text>
           <picker 
@@ -32,65 +34,77 @@
             @change="onEndDateChange"
             class="date-picker"
           >
-            <view class="picker-text">{{ filterParams.endDate || '请选择' }}</view>
+            <view class="picker-display">
+              <text class="picker-text">
+                {{ filterParams.endDate || '选择结束日期' }}
+              </text>
+              <text class="picker-icon">📅</text>
+            </view>
           </picker>
         </view>
       </view>
+      
       <view class="filter-row">
         <view class="filter-item">
           <text class="filter-label">餐次类型</text>
           <picker 
-            mode="selector" 
-            :range="mealOptions" 
-            range-key="label"
-            :value="selectedMealIndex" 
-            @change="onMealChange"
+            :value="filterParams.mealTypeIndex" 
+            :range="mealTypeOptions" 
+            range-key="name"
+            @change="onMealTypeChange"
             class="meal-picker"
           >
-            <view class="picker-text">{{ mealOptions[selectedMealIndex]?.label || '全部' }}</view>
+            <view class="picker-display">
+              <text class="picker-text">
+                {{ mealTypeOptions[filterParams.mealTypeIndex].name }}
+              </text>
+              <text class="picker-icon">🍽️</text>
+            </view>
           </picker>
         </view>
-        <view class="filter-item">
-          <text class="filter-label">状态</text>
-          <picker 
-            mode="selector" 
-            :range="statusOptions" 
-            range-key="label"
-            :value="selectedStatusIndex" 
-            @change="onStatusChange"
-            class="status-picker"
-          >
-            <view class="picker-text">{{ statusOptions[selectedStatusIndex]?.label || '全部' }}</view>
-          </picker>
+        
+        <view class="filter-actions">
+          <button class="filter-btn" @click="applyFilter">
+            <text class="btn-icon">🔍</text>
+            <text>搜索</text>
+          </button>
+          <button class="reset-btn" @click="resetFilter">
+            <text class="btn-icon">🔄</text>
+            <text>重置</text>
+          </button>
         </view>
-      </view>
-      <view class="filter-actions">
-        <button @click="applyFilter" class="filter-btn">应用筛选</button>
-        <button @click="resetFilter" class="reset-btn">重置</button>
       </view>
     </view>
 
     <!-- 菜单列表 -->
-    <view class="menu-list">
-      <view v-if="loading" class="loading-container">
+    <view class="menu-list-section">
+      <!-- 加载状态 -->
+      <view v-if="loading" class="loading-state">
         <text class="loading-text">加载中...</text>
       </view>
       
-      <view v-else-if="menuList.length === 0" class="empty-container">
-        <text class="empty-text">暂无菜单数据</text>
+      <!-- 空状态 -->
+      <view v-else-if="menuList.length === 0" class="empty-state">
+        <text class="empty-icon">📋</text>
+        <text class="empty-title">暂无菜单记录</text>
+        <text class="empty-subtitle">当前筛选条件下没有找到菜单</text>
+        <button class="reset-filter-btn" @click="resetFilter">
+          <text>重置筛选条件</text>
+        </button>
       </view>
       
-      <view v-else class="menu-items">
+      <!-- 菜单列表 -->
+      <view v-else class="menu-list">
         <view 
           v-for="menu in menuList" 
-          :key="menu._id" 
+          :key="menu._id"
           class="menu-item"
           @click="viewMenuDetail(menu)"
         >
           <view class="menu-header">
-            <view class="menu-date">
-              <text class="date-text">{{ formatDate(menu.publishDate) }}</text>
-              <text class="meal-text">{{ getMealTypeText(menu.mealType) }}</text>
+            <view class="menu-date-info">
+              <text class="menu-date">{{ formatDateDisplay(menu.publishDate) }}</text>
+              <text class="menu-meal-type">{{ getMealTypeText(menu.mealType) }}</text>
             </view>
             <view class="menu-status">
               <text :class="['status-badge', `status-${menu.publishStatus}`]">
@@ -100,403 +114,478 @@
           </view>
           
           <view class="menu-content">
-            <view class="menu-info">
-              <text class="menu-title">{{ menu.name || '今日菜单' }}</text>
-              <text class="menu-description">{{ menu.description || '暂无描述' }}</text>
+            <view class="menu-description" v-if="menu.description">
+              <text class="description-text">{{ menu.description }}</text>
             </view>
             
             <view class="menu-stats">
               <view class="stat-item">
                 <text class="stat-label">菜品数量</text>
-                <text class="stat-value">{{ menu.dishCount || 0 }}</text>
+                <text class="stat-value">{{ menu.dishes?.length || 0 }}道</text>
               </view>
               <view class="stat-item">
                 <text class="stat-label">总价格</text>
-                <text class="stat-value">¥{{ menu.totalPrice || 0 }}</text>
+                <text class="stat-value">¥{{ calculateTotalPrice(menu.dishes) }}</text>
               </view>
-              <view class="stat-item">
-                <text class="stat-label">发布人</text>
-                <text class="stat-value">{{ menu.publish_by_name || '未知' }}</text>
+              <view class="stat-item" v-if="menu.publishTime">
+                <text class="stat-label">发布时间</text>
+                <text class="stat-value">{{ formatDateTime(menu.publishTime) }}</text>
               </view>
-              <view class="stat-item">
+              <view class="stat-item" v-if="menu.createTime">
                 <text class="stat-label">创建时间</text>
-                <text class="stat-value">{{ $formatTime(menu.createTime) }}</text>
+                <text class="stat-value">{{ formatDateTime(menu.createTime) }}</text>
               </view>
             </view>
           </view>
           
           <view class="menu-actions">
-            <button @click.stop="editMenu(menu)" class="action-btn edit-btn">
+            <button 
+              @click.stop="editMenu(menu)" 
+              class="action-btn edit-btn"
+              :disabled="menu.publishStatus === 'revoked'"
+            >
               <text class="btn-text">编辑</text>
             </button>
-            <button @click.stop="duplicateMenu(menu)" class="action-btn duplicate-btn">
+            <button 
+              @click.stop="duplicateMenu(menu)" 
+              class="action-btn duplicate-btn"
+            >
               <text class="btn-text">复制</text>
             </button>
-            <button @click.stop="deleteMenu(menu)" class="action-btn delete-btn">
+            <button 
+              @click.stop="deleteMenu(menu)" 
+              class="action-btn delete-btn"
+              v-if="menu.publishStatus === 'draft'"
+            >
               <text class="btn-text">删除</text>
             </button>
           </view>
         </view>
       </view>
-    </view>
-
-    <!-- 分页 -->
-    <view v-if="totalPages > 1" class="pagination">
-      <button 
-        @click="prevPage" 
-        :disabled="currentPage <= 1"
-        class="page-btn"
-      >
-        <text class="btn-text">上一页</text>
-      </button>
-      <text class="page-info">{{ currentPage }} / {{ totalPages }}</text>
-      <button 
-        @click="nextPage" 
-        :disabled="currentPage >= totalPages"
-        class="page-btn"
-      >
-        <text class="btn-text">下一页</text>
-      </button>
+      
+      <!-- 分页信息 -->
+      <view v-if="pagination.total > 0" class="pagination-info">
+        <text class="pagination-text">
+          共{{ pagination.total }}条记录，第{{ pagination.page }}/{{ pagination.totalPages }}页
+        </text>
+        
+        <!-- 分页按钮 -->
+        <view class="pagination-buttons">
+          <button 
+            class="page-btn" 
+            @click="prevPage"
+            :disabled="pagination.page <= 1"
+          >
+            上一页
+          </button>
+          <button 
+            class="page-btn" 
+            @click="nextPage"
+            :disabled="pagination.page >= pagination.totalPages"
+          >
+            下一页
+          </button>
+        </view>
+      </view>
     </view>
   </view>
 </template>
 
 <script>
-import api from '@/utils/api.js'
-import timeMixin from '@/mixins/timeMixin.js'
+import api from '@/utils/api'
 
 export default {
   name: 'MenuHistory',
-  mixins: [timeMixin],
   data() {
     return {
       loading: false,
       menuList: [],
-      currentPage: 1,
-      pageSize: 10,
-      totalPages: 1,
-      totalCount: 0,
       
-      // 筛选参数
+      // 筛选参数 - 严格按照接口文档
       filterParams: {
         startDate: '',
         endDate: '',
-        mealType: '',
-        status: ''
+        mealTypeIndex: 0, // 0表示全部
+        page: 1,
+        pageSize: 20
       },
       
-      // 选择器选项
-      selectedMealIndex: 0,
-      selectedStatusIndex: 0,
-      
-      mealOptions: [
-        { value: '', label: '全部餐次' },
-        { value: 'breakfast', label: '早餐' },
-        { value: 'lunch', label: '午餐' },
-        { value: 'dinner', label: '晚餐' }
+      // 餐次选项 - 包含"全部"选项
+      mealTypeOptions: [
+        { value: '', name: '全部餐次' },
+        { value: 'breakfast', name: '早餐' },
+        { value: 'lunch', name: '午餐' },
+        { value: 'dinner', name: '晚餐' }
       ],
       
-      statusOptions: [
-        { value: '', label: '全部状态' },
-        { value: 'draft', label: '草稿' },
-        { value: 'published', label: '已发布' },
-        { value: 'revoked', label: '已撤回' }
-      ]
+      // 分页信息
+      pagination: {
+        page: 1,
+        pageSize: 20,
+        total: 0,
+        totalPages: 0
+      }
     }
   },
   
   onLoad() {
-    console.log('菜单历史页面 onLoad')
-    this.initData()
+    this.initDefaultFilter()
+    this.loadMenuHistory()
   },
   
   onShow() {
-    console.log('菜单历史页面 onShow')
+    // 页面显示时重新加载数据
     this.loadMenuHistory()
   },
   
   methods: {
-    /**
-     * 初始化数据
-     */
-    initData() {
-      // 设置默认日期范围（最近30天）
-      const endDate = this.$createDate()
-      const startDate = this.$createDate().subtract(30, 'day')
+    // 初始化默认筛选条件
+    initDefaultFilter() {
+      const today = new Date()
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(today.getDate() - 30)
       
-      this.filterParams.endDate = this.formatDateForPicker(endDate)
-      this.filterParams.startDate = this.formatDateForPicker(startDate)
+      this.filterParams.endDate = this.formatDateForPicker(today)
+      this.filterParams.startDate = this.formatDateForPicker(thirtyDaysAgo)
+    },
+    
+    // 格式化日期为选择器格式
+    formatDateForPicker(date) {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+    
+    // 格式化日期显示
+    formatDateDisplay(dateStr) {
+      if (!dateStr) return '未知日期'
       
+      console.log('菜单历史页面 formatDateDisplay 输入:', dateStr, '类型:', typeof dateStr)
+      
+      try {
+        let date
+        
+        // 处理多种可能的日期格式
+        if (typeof dateStr === 'string') {
+          // 去掉可能的时间部分，只保留日期
+          let cleanDateStr = dateStr.split('T')[0].split(' ')[0]
+          
+          // 替换斜杠为短横线，确保格式一致
+          cleanDateStr = cleanDateStr.replace(/\//g, '-')
+          
+          console.log('清理后的日期字符串:', cleanDateStr)
+          
+          // 尝试直接解析
+          date = new Date(cleanDateStr + 'T00:00:00')
+          
+          // 如果解析失败，尝试其他格式
+          if (isNaN(date.getTime())) {
+            // 尝试原始字符串
+            date = new Date(dateStr)
+            
+            // 如果还是失败，尝试手动解析
+            if (isNaN(date.getTime())) {
+              const parts = cleanDateStr.split('-')
+              if (parts.length >= 3) {
+                const year = parseInt(parts[0])
+                const month = parseInt(parts[1]) - 1 // 月份从0开始
+                const day = parseInt(parts[2])
+                date = new Date(year, month, day)
+              }
+            }
+          }
+        } else {
+          date = new Date(dateStr)
+        }
+        
+        console.log('解析后的日期对象:', date, '有效性:', !isNaN(date.getTime()))
+        
+        if (isNaN(date.getTime())) {
+          console.error('无法解析日期:', dateStr)
+          return '未知日期'
+        }
+        
+        const month = date.getMonth() + 1
+        const day = date.getDate()
+        const weekdays = ['日', '一', '二', '三', '四', '五', '六']
+        const weekday = weekdays[date.getDay()]
+        
+        const result = `${month}月${day}日 周${weekday}`
+        console.log('格式化结果:', result)
+        
+        return result
+      } catch (error) {
+        console.error('日期格式化出错:', error, '原始数据:', dateStr)
+        return '未知日期'
+      }
+    },
+    
+    // 格式化日期时间
+    formatDateTime(dateTimeStr) {
+      if (!dateTimeStr) return '未知时间'
+      
+      try {
+        const date = new Date(dateTimeStr)
+        if (isNaN(date.getTime())) return '未知时间'
+        
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        
+        return `${year}-${month}-${day} ${hours}:${minutes}`
+      } catch (error) {
+        return '未知时间'
+      }
+    },
+    
+    // 计算总价格
+    calculateTotalPrice(dishes) {
+      if (!dishes || !Array.isArray(dishes)) return '0.00'
+      
+      const total = dishes.reduce((sum, dish) => {
+        const price = parseFloat(dish.price) || 0
+        return sum + price
+      }, 0)
+      
+      return total.toFixed(2)
+    },
+    
+    // 获取餐次文本
+    getMealTypeText(mealType) {
+      const mealTypeMap = {
+        'breakfast': '早餐',
+        'lunch': '午餐',
+        'dinner': '晚餐'
+      }
+      return mealTypeMap[mealType] || mealType
+    },
+    
+    // 获取状态文本
+    getStatusText(status) {
+      const statusMap = {
+        'draft': '草稿',
+        'published': '已发布',
+        'revoked': '已撤回'
+      }
+      return statusMap[status] || status
+    },
+    
+    // 开始日期选择事件
+    onStartDateChange(e) {
+      this.filterParams.startDate = e.detail.value
+    },
+    
+    // 结束日期选择事件
+    onEndDateChange(e) {
+      this.filterParams.endDate = e.detail.value
+    },
+    
+    // 餐次类型选择事件
+    onMealTypeChange(e) {
+      this.filterParams.mealTypeIndex = parseInt(e.detail.value)
+    },
+    
+    // 应用筛选
+    applyFilter() {
+      this.filterParams.page = 1 // 重置到第一页
       this.loadMenuHistory()
     },
     
-    /**
-     * 加载菜单历史
-     */
+    // 重置筛选条件
+    resetFilter() {
+      this.filterParams.mealTypeIndex = 0
+      this.filterParams.page = 1
+      this.initDefaultFilter()
+      this.loadMenuHistory()
+    },
+    
+    // 加载菜单历史 - 严格按照接口文档
     async loadMenuHistory() {
+      this.loading = true
+      
       try {
-        this.loading = true
-        
+        // 构建请求参数
         const params = {
-          page: this.currentPage,
-          pageSize: this.pageSize,
-          startDate: this.filterParams.startDate,
-          endDate: this.filterParams.endDate,
-          mealType: this.filterParams.mealType,
-          status: this.filterParams.status
+          page: this.filterParams.page,
+          pageSize: this.filterParams.pageSize
         }
         
-        console.log('加载菜单历史，参数:', params)
-        const response = await api.admin.getMenuHistory(params)
-        console.log('菜单历史API响应:', response)
+        // 添加可选参数
+        if (this.filterParams.startDate) {
+          params.startDate = this.filterParams.startDate
+        }
         
-        if (response && response.success) {
+        if (this.filterParams.endDate) {
+          params.endDate = this.filterParams.endDate
+        }
+        
+        // 餐次类型（0表示全部，不传参数）
+        if (this.filterParams.mealTypeIndex > 0) {
+          params.mealType = this.mealTypeOptions[this.filterParams.mealTypeIndex].value
+        }
+        
+        console.log('请求菜单历史参数:', params)
+        
+        const response = await api.admin.getMenuHistory(params)
+        
+        if (response && response.success && response.data) {
           this.menuList = response.data.list || []
-          this.totalCount = response.data.total || 0
-          this.totalPages = Math.ceil(this.totalCount / this.pageSize)
           
-          console.log('菜单历史加载成功，数量:', this.menuList.length)
-          console.log('菜单历史数据:', this.menuList)
+          // 更新分页信息
+          if (response.data.pagination) {
+            this.pagination = response.data.pagination
+          }
           
-          // 调试：检查每个菜单项的字段
-          this.menuList.forEach((menu, index) => {
-            console.log(`菜单历史${index + 1}:`, {
-              _id: menu._id,
-              name: menu.name,
-              publishDate: menu.publishDate,
-              mealType: menu.mealType,
-              publishStatus: menu.publishStatus,
-              dishCount: menu.dishCount
-            })
-          })
+          console.log('菜单历史加载成功:', this.menuList.length, '条记录')
         } else {
           throw new Error(response?.message || '获取菜单历史失败')
         }
       } catch (error) {
         console.error('加载菜单历史失败:', error)
         uni.showToast({
-          title: error.message || '加载失败',
-          icon: 'none'
+          title: '加载失败',
+          icon: 'error'
         })
         this.menuList = []
+        this.pagination = { page: 1, pageSize: 20, total: 0, totalPages: 0 }
       } finally {
         this.loading = false
       }
     },
     
-    /**
-     * 刷新数据
-     */
-    refreshData() {
-      this.currentPage = 1
-      this.loadMenuHistory()
-    },
-    
-    /**
-     * 应用筛选
-     */
-    applyFilter() {
-      this.currentPage = 1
-      this.loadMenuHistory()
-    },
-    
-    /**
-     * 重置筛选
-     */
-    resetFilter() {
-      this.selectedMealIndex = 0
-      this.selectedStatusIndex = 0
-      this.filterParams.mealType = ''
-      this.filterParams.status = ''
-      this.initData()
-    },
-    
-    /**
-     * 查看菜单详情
-     */
-    viewMenuDetail(menu) {
-      uni.navigateTo({
-        url: `/pages/admin/menu-edit?menuId=${menu._id}&mode=view`
-      })
-    },
-    
-    /**
-     * 编辑菜单
-     */
-    editMenu(menu) {
-      uni.navigateTo({
-        url: `/pages/admin/menu-edit?menuId=${menu._id}&mode=edit`
-      })
-    },
-    
-    /**
-     * 复制菜单
-     */
-    async duplicateMenu(menu) {
-      try {
-        uni.showModal({
-          title: '确认复制',
-          content: `确定要复制 ${this.formatDate(menu.date)} ${this.getMealTypeText(menu.mealType)} 的菜单吗？`,
-          success: async (res) => {
-            if (res.confirm) {
-              // 这里可以调用复制菜单的API
-              uni.showToast({
-                title: '复制功能开发中',
-                icon: 'none'
-              })
-            }
-          }
-        })
-      } catch (error) {
-        console.error('复制菜单失败:', error)
+    // 上一页
+    prevPage() {
+      if (this.pagination.page > 1) {
+        this.filterParams.page = this.pagination.page - 1
+        this.loadMenuHistory()
       }
     },
     
-    /**
-     * 删除菜单
-     */
-    async deleteMenu(menu) {
-      try {
-        uni.showModal({
-          title: '确认删除',
-          content: `确定要删除 ${this.formatDate(menu.date)} ${this.getMealTypeText(menu.mealType)} 的菜单吗？此操作不可恢复。`,
-          success: async (res) => {
-            if (res.confirm) {
-              // 这里可以调用删除菜单的API
-              uni.showToast({
-                title: '删除功能开发中',
-                icon: 'none'
-              })
-            }
-          }
+    // 下一页
+    nextPage() {
+      if (this.pagination.page < this.pagination.totalPages) {
+        this.filterParams.page = this.pagination.page + 1
+        this.loadMenuHistory()
+      }
+    },
+    
+    // 编辑菜单
+    editMenu(menu) {
+      if (!menu || !menu._id) {
+        uni.showToast({
+          title: '菜单ID无效',
+          icon: 'error'
         })
+        return
+      }
+      
+      uni.navigateTo({
+        url: `/pages/admin/menu-edit?menuId=${menu._id}`
+      })
+    },
+    
+    // 复制菜单
+    duplicateMenu(menu) {
+      if (!menu) {
+        uni.showToast({
+          title: '菜单数据无效',
+          icon: 'error'
+        })
+        return
+      }
+      
+      // 缓存菜单数据用于复制
+      uni.setStorageSync('duplicateMenuData', {
+        mealType: menu.mealType,
+        description: menu.description,
+        dishes: menu.dishes || []
+      })
+      
+      uni.navigateTo({
+        url: '/pages/admin/menu-edit?action=duplicate'
+      })
+    },
+    
+    // 删除菜单（仅草稿状态）
+    async deleteMenu(menu) {
+      if (!menu || !menu._id) {
+        uni.showToast({
+          title: '菜单ID无效',
+          icon: 'error'
+        })
+        return
+      }
+      
+      if (menu.publishStatus !== 'draft') {
+        uni.showToast({
+          title: '只能删除草稿状态的菜单',
+          icon: 'error'
+        })
+        return
+      }
+      
+      try {
+        const result = await uni.showModal({
+          title: '确认删除',
+          content: '确定要删除这个菜单草稿吗？删除后无法恢复。',
+          confirmText: '删除',
+          confirmColor: '#e74c3c'
+        })
+        
+        if (result.confirm) {
+          // 直接调用删除接口
+          const response = await api.admin.deleteMenu(menu._id)
+          
+          if (response && response.success) {
+            uni.showToast({
+              title: '删除成功',
+              icon: 'success'
+            })
+            
+            // 重新加载数据
+            this.loadMenuHistory()
+          } else {
+            throw new Error(response?.message || '删除失败')
+          }
+        }
       } catch (error) {
         console.error('删除菜单失败:', error)
-      }
-    },
-    
-    /**
-     * 上一页
-     */
-    prevPage() {
-      if (this.currentPage > 1) {
-        this.currentPage--
-        this.loadMenuHistory()
-      }
-    },
-    
-    /**
-     * 下一页
-     */
-    nextPage() {
-      if (this.currentPage < this.totalPages) {
-        this.currentPage++
-        this.loadMenuHistory()
-      }
-    },
-    
-    /**
-     * 日期选择器变化
-     */
-    onStartDateChange(e) {
-      this.filterParams.startDate = e.detail.value
-    },
-    
-    onEndDateChange(e) {
-      this.filterParams.endDate = e.detail.value
-    },
-    
-    /**
-     * 餐次选择器变化
-     */
-    onMealChange(e) {
-      this.selectedMealIndex = e.detail.value
-      this.filterParams.mealType = this.mealOptions[this.selectedMealIndex].value
-    },
-    
-    /**
-     * 状态选择器变化
-     */
-    onStatusChange(e) {
-      this.selectedStatusIndex = e.detail.value
-      this.filterParams.status = this.statusOptions[this.selectedStatusIndex].value
-    },
-    
-    /**
-     * 格式化日期
-     */
-    formatDate(dateString) {
-      console.log('菜单历史页面 formatDate 输入:', dateString, '类型:', typeof dateString)
-      if (!dateString) {
-        console.log('日期字符串为空，返回未知日期')
-        return '未知日期'
-      }
-      try {
-        const date = this.$createDate(dateString)
-        console.log('解析后的日期对象:', date)
-        if (!date || !date.isValid()) {
-          console.log('日期无效，返回未知日期')
-          return '未知日期'
+        
+        // 检查是否是404错误（接口不存在）
+        if (error.message && error.message.includes('404')) {
+          uni.showToast({
+            title: '删除接口暂未实现，请联系管理员',
+            icon: 'none',
+            duration: 3000
+          })
+        } else {
+          uni.showToast({
+            title: error.message || '删除失败',
+            icon: 'error'
+          })
         }
-        const month = date.getMonth() + 1
-        const day = date.getDate()
-        const result = `${month}月${day}日`
-        console.log('格式化结果:', result)
-        return result
-      } catch (error) {
-        console.error('日期格式化失败:', error)
-        return '未知日期'
       }
     },
     
-    /**
-     * 格式化时间
-     */
-    formatTime(dateString) {
-      if (!dateString) return ''
-      try {
-        const date = this.$createDate(dateString)
-        if (!date || !date.isValid()) return ''
-        const month = date.getMonth() + 1
-        const day = date.getDate()
-        const hours = date.getHours().toString().padStart(2, '0')
-        const minutes = date.getMinutes().toString().padStart(2, '0')
-        return `${month}月${day}日 ${hours}:${minutes}`
-      } catch (error) {
-        console.error('时间格式化失败:', error)
-        return ''
+    // 查看菜单详情
+    viewMenuDetail(menu) {
+      if (!menu || !menu._id) {
+        uni.showToast({
+          title: '菜单ID无效',
+          icon: 'error'
+        })
+        return
       }
-    },
-    
-    /**
-     * 格式化日期用于选择器
-     */
-    formatDateForPicker(date) {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-    },
-    
-    /**
-     * 获取餐次类型文本
-     */
-    getMealTypeText(mealType) {
-      const mealMap = {
-        breakfast: '早餐',
-        lunch: '午餐',
-        dinner: '晚餐'
-      }
-      return mealMap[mealType] || mealType
-    },
-    
-    /**
-     * 获取状态文本
-     */
-    getStatusText(status) {
-      const statusMap = {
-        draft: '草稿',
-        published: '已发布',
-        revoked: '已撤回'
-      }
-      return statusMap[status] || status
+      
+      // 缓存菜单数据
+      uni.setStorageSync('currentMenuDetail', menu)
+      
+      uni.navigateTo({
+        url: `/pages/admin/menu-detail?menuId=${menu._id}`
+      })
     }
   }
 }
@@ -504,289 +593,363 @@ export default {
 
 <style scoped>
 .menu-history-page {
-  padding: 20rpx;
-  background-color: #f5f5f5;
   min-height: 100vh;
+  background-color: #f8f9fa;
+  padding-bottom: 40px;
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 30rpx;
-  padding: 20rpx;
-  background: white;
-  border-radius: 10rpx;
-}
-
-.page-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-}
-
-.refresh-btn {
-  background-color: #409eff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 40px 20px 30px;
   color: white;
-  border: none;
-  padding: 15rpx 30rpx;
-  border-radius: 6rpx;
-  font-size: 28rpx;
+  text-align: center;
+}
+
+.header-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.header-subtitle {
+  font-size: 14px;
+  opacity: 0.9;
 }
 
 .filter-section {
   background: white;
-  padding: 30rpx;
-  margin-bottom: 20rpx;
-  border-radius: 10rpx;
+  padding: 20px;
+  margin: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .filter-row {
   display: flex;
-  gap: 20rpx;
-  margin-bottom: 20rpx;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
 }
 
 .filter-item {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .filter-label {
-  font-size: 28rpx;
+  font-size: 14px;
+  font-weight: 500;
   color: #666;
-  margin-bottom: 10rpx;
-  display: block;
 }
 
 .date-picker,
-.meal-picker,
-.status-picker {
-  width: 100%;
-  height: 80rpx;
-  border: 2rpx solid #ddd;
-  border-radius: 8rpx;
+.meal-picker {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.picker-display {
+  padding: 12px 16px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0 20rpx;
 }
 
 .picker-text {
-  font-size: 28rpx;
+  font-size: 14px;
   color: #333;
+}
+
+.picker-icon {
+  font-size: 16px;
+  opacity: 0.6;
 }
 
 .filter-actions {
   display: flex;
-  gap: 20rpx;
+  gap: 12px;
+  align-items: flex-end;
 }
 
 .filter-btn,
 .reset-btn {
-  flex: 1;
-  height: 80rpx;
+  padding: 12px 20px;
   border: none;
-  border-radius: 8rpx;
-  font-size: 28rpx;
+  border-radius: 8px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .filter-btn {
-  background-color: #409eff;
+  background: #667eea;
   color: white;
 }
 
 .reset-btn {
-  background-color: #909399;
+  background: #6c757d;
   color: white;
 }
 
-.menu-list {
+.btn-icon {
+  font-size: 16px;
+}
+
+.menu-list-section {
+  margin: 0 20px;
+}
+
+.loading-state,
+.empty-state {
   background: white;
-  border-radius: 10rpx;
-  overflow: hidden;
-}
-
-.loading-container,
-.empty-container {
-  padding: 100rpx 20rpx;
+  border-radius: 12px;
+  padding: 40px 20px;
   text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.loading-text,
-.empty-text {
-  font-size: 28rpx;
+.loading-text {
   color: #999;
+  font-size: 14px;
 }
 
-.menu-items {
-  padding: 20rpx;
+.empty-icon {
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  color: #666;
+  display: block;
+  margin-bottom: 24px;
+}
+
+.reset-filter-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .menu-item {
-  border: 1rpx solid rgba(0, 0, 0, 0.05);
-  border-radius: 16rpx;
-  margin-bottom: 20rpx;
-  overflow: hidden;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.menu-item:active {
-  transform: scale(0.98);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.12);
+.menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .menu-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24rpx;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.menu-date-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .menu-date {
-  display: flex;
-  flex-direction: column;
-}
-
-.date-text {
-  font-size: 32rpx;
+  font-size: 18px;
   font-weight: bold;
-  color: white;
+  color: #333;
 }
 
-.meal-text {
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 5rpx;
+.menu-meal-type {
+  font-size: 14px;
+  color: #666;
 }
 
 .status-badge {
-  padding: 8rpx 16rpx;
-  border-radius: 20rpx;
-  font-size: 24rpx;
-  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
   font-weight: 500;
 }
 
 .status-draft {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: #fff3cd;
+  color: #856404;
 }
 
 .status-published {
-  background-color: rgba(39, 174, 96, 0.9);
-  color: white;
+  background: #d4edda;
+  color: #155724;
 }
 
 .status-revoked {
-  background-color: rgba(231, 76, 60, 0.9);
-  color: white;
+  background: #f8d7da;
+  color: #721c24;
 }
 
 .menu-content {
-  padding: 20rpx;
-}
-
-.menu-info {
-  margin-bottom: 20rpx;
-}
-
-.menu-title {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 10rpx;
+  margin-bottom: 20px;
 }
 
 .menu-description {
-  font-size: 26rpx;
+  margin-bottom: 16px;
+}
+
+.description-text {
+  font-size: 14px;
   color: #666;
-  display: block;
+  line-height: 1.5;
 }
 
 .menu-stats {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20rpx;
-  margin-top: 16rpx;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
+  gap: 4px;
 }
 
 .stat-label {
-  font-size: 24rpx;
+  font-size: 12px;
   color: #999;
 }
 
 .stat-value {
-  font-size: 28rpx;
+  font-size: 14px;
+  font-weight: 500;
   color: #333;
-  font-weight: bold;
 }
 
 .menu-actions {
   display: flex;
-  gap: 20rpx;
-  padding: 20rpx;
-  background-color: #f8f9fa;
+  gap: 12px;
+  border-top: 1px solid #eee;
+  padding-top: 16px;
 }
 
 .action-btn {
   flex: 1;
-  height: 70rpx;
+  height: 36px;
   border: none;
-  border-radius: 6rpx;
-  font-size: 26rpx;
+  border-radius: 6px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .edit-btn {
-  background-color: #409eff;
+  background: #667eea;
   color: white;
 }
 
 .duplicate-btn {
-  background-color: #67c23a;
+  background: #28a745;
   color: white;
 }
 
 .delete-btn {
-  background-color: #f56c6c;
+  background: #e74c3c;
   color: white;
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30rpx;
-  padding: 30rpx;
+.pagination-info {
   background: white;
-  border-radius: 10rpx;
-  margin-top: 20rpx;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pagination-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.pagination-buttons {
+  display: flex;
+  gap: 12px;
 }
 
 .page-btn {
-  background-color: #409eff;
+  background: #667eea;
   color: white;
   border: none;
-  padding: 15rpx 30rpx;
-  border-radius: 6rpx;
-  font-size: 28rpx;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .page-btn:disabled {
-  background-color: #c0c4cc;
-  color: #909399;
+  background: #ccc;
+  cursor: not-allowed;
 }
 
-.page-info {
-  font-size: 28rpx;
-  color: #666;
+/* 响应式设计 */
+@media (max-width: 480px) {
+  .filter-row {
+    flex-direction: column;
+  }
+  
+  .filter-actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .menu-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .menu-actions {
+    flex-direction: column;
+  }
+  
+  .pagination-info {
+    flex-direction: column;
+    gap: 16px;
+  }
 }
 </style>
-
