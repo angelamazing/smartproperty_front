@@ -143,13 +143,6 @@
             <text class="menu-desc">代确认和批量确认就餐</text>
           </view>
           
-          <view class="menu-item" @click="switchtab('/pages/admin/qr-management')">
-            <view class="menu-icon qr">
-              <text class="iconfont">📱</text>
-            </view>
-            <text class="menu-label">二维码管理</text>
-            <text class="menu-desc">管理扫码就餐二维码</text>
-          </view>
         </view>
       </view>
 

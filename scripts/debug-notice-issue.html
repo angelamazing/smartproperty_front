@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐛 公告空白问题诊断</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .issue-card {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .issue-header {
+            background: #ff4757;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -20px -20px 20px -20px;
+        }
+        .solution {
+            background: #2ed573;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .debug-step {
+            background: #3742fa;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .code-block {
+            background: #2f3542;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .warning {
+            background: #ffa502;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 首页公告空白问题诊断</h1>
+    
+    <div class="issue-card">
+        <div class="issue-header">
+            <h2>❌ 问题现象</h2>
+        </div>
+        <p><strong>用户反馈：</strong> "为什么时空白的"</p>
+        <p><strong>问题位置：</strong> 首页系统公告区域显示空白</p>
+        <p><strong>期望结果：</strong> 显示公告轮播内容</p>
+    </div>
+
+    <div class="issue-card">
+        <h2>🔍 可能原因分析</h2>
+        
+        <h3>1. 数据问题</h3>
+        <ul>
+            <li>❌ <code>systemNotices</code> 数组为空</li>
+            <li>❌ API 接口 <code>api.admin.getNotices</code> 返回失败</li>
+            <li>❌ 没有已发布状态的公告数据</li>
+        </ul>
+
+        <h3>2. 显示控制问题</h3>
+        <ul>
+            <li>❌ <code>showSystemNotice</code> 被设置为 false</li>
+            <li>❌ 用户设置中关闭了系统公告显示</li>
+        </ul>
+
+        <h3>3. 组件加载问题</h3>
+        <ul>
+            <li>❌ <code>NoticeSwiper</code> 组件导入失败</li>
+            <li>❌ 组件渲染条件不满足</li>
+        </ul>
+
+        <h3>4. API 权限问题</h3>
+        <ul>
+            <li>❌ 当前用户没有查看公告的权限</li>
+            <li>❌ API 接口需要管理员权限但当前用户不是管理员</li>
+        </ul>
+    </div>
+
+    <div class="issue-card">
+        <h2>🔧 解决方案</h2>
+
+        <div class="solution">
+            <h3>✅ 立即解决方案</h3>
+            <p>我已经在 NoticeSwiper 组件中添加了调试信息和占位内容</p>
+        </div>
+
+        <h3>第一步：检查调试信息</h3>
+        <div class="debug-step">
+            现在首页顶部会显示红色调试条，包含：
+            <ul>
+                <li>notices数量</li>
+                <li>showNotices状态</li>
+                <li>显示条件结果</li>
+            </ul>
+        </div>
+
+        <h3>第二步：查看占位内容</h3>
+        <p>如果没有公告数据，现在会显示：</p>
+        <div class="code-block">
+📢 系统公告
+暂无公告内容
+🔄 刷新公告 (按钮)
+        </div>
+
+        <h3>第三步：检查控制台日志</h3>
+        <div class="debug-step">
+            打开开发者工具查看控制台，关键日志：
+        </div>
+        <div class="code-block">
+🔄 开始加载系统公告列表...
+📄 公告API返回结果: {...}
+✅ 成功加载 X 个公告: [...]
+📭 没有找到已发布的公告
+❌ 加载公告列表失败: {...}
+        </div>
+
+        <h3>第四步：API 接口调试</h3>
+        <div class="warning">
+            <strong>重要检查点：</strong> api.admin.getNotices 可能需要管理员权限
+        </div>
+        <p>如果当前用户不是管理员，考虑：</p>
+        <ul>
+            <li>改用普通用户的公告查看接口</li>
+            <li>添加权限检查和降级处理</li>
+            <li>提供游客可见的公告接口</li>
+        </ul>
+    </div>
+
+    <div class="issue-card">
+        <h2>🛠️ 备用解决方案</h2>
+
+        <h3>方案A：回退到原始组件</h3>
+        <div class="code-block">
+&lt;!-- 临时回退到原来的单公告组件 --&gt;
+&lt;SystemNotice 
+  :notice="systemNotice" 
+  :show-notice="showSystemNotice"
+  :closable="false"
+  :refreshable="true"
+  @refresh="refreshSystemNotice"
+/&gt;
+        </div>
+
+        <h3>方案B：模拟数据测试</h3>
+        <div class="code-block">
+// 在 loadSystemNotices() 方法中添加模拟数据
+async loadSystemNotices() {
+  try {
+    // 📊 临时模拟数据用于测试
+    const mockNotices = [
+      {
+        id: 'mock-1',
+        title: '系统测试公告',
+        content: '这是一个测试公告，用于验证组件功能。',
+        type: 'info',
+        priority: 1,
+        isSticky: false,
+        createTime: new Date().toISOString(),
+        status: 'published'
+      }
+    ];
+    
+    console.log('🧪 使用模拟数据:', mockNotices);
+    return mockNotices;
+    
+    // 注释掉原来的 API 调用进行测试
+    // const result = await api.admin.getNotices({...});
+    
+  } catch (error) {
+    console.error('❌ 加载公告列表失败:', error);
+    return [];
+  }
+}
+        </div>
+
+        <h3>方案C：检查API接口权限</h3>
+        <div class="code-block">
+// 替换为不需要管理员权限的接口
+const result = await api.user.getPublicNotices({
+  status: 'published',
+  page: 1,
+  limit: 10,
+  sortBy: 'priority,createTime',
+  sortOrder: 'desc'
+});
+        </div>
+    </div>
+
+    <div class="issue-card">
+        <h2>📋 排查清单</h2>
+        
+        <h3>请按顺序检查以下项目：</h3>
+        <ol>
+            <li>✅ 查看首页顶部是否有红色调试信息条</li>
+            <li>□ 检查调试信息显示的数据状态</li>
+            <li>□ 打开开发者工具查看控制台日志</li>
+            <li>□ 确认API接口是否正常返回数据</li>
+            <li>□ 检查当前用户是否有查看公告的权限</li>
+            <li>□ 验证后端是否有已发布的公告数据</li>
+            <li>□ 确认 showSystemNotice 状态是否为 true</li>
+        </ol>
+
+        <div class="warning">
+            <strong>如果仍然空白，请截图调试信息并提供控制台日志！</strong>
+        </div>
+    </div>
+
+    <div class="issue-card">
+        <h2>🎯 预期修复效果</h2>
+        <p>修复后的首页公告应该显示：</p>
+        <ul>
+            <li>🎠 公告轮播组件（如果有数据）</li>
+            <li>📝 "暂无公告内容"占位符（如果没有数据）</li>
+            <li>🔄 刷新按钮（始终可用）</li>
+            <li>🐛 临时调试信息（红色条，稍后会移除）</li>
+        </ul>
+    </div>
+
+    <script>
+        // 页面加载完成后显示提示
+        window.onload = function() {
+            console.log('🐛 公告空白问题诊断页面已加载');
+            console.log('📋 请按照排查清单逐项检查');
+            
+            // 模拟一些可能的问题场景
+            const possibleIssues = [
+                '数据加载失败 - API返回空结果',
+                '权限问题 - 需要管理员权限查看公告',
+                '显示控制 - showSystemNotice为false',
+                '组件问题 - NoticeSwiper组件加载失败',
+                '后端问题 - 没有已发布的公告数据'
+            ];
+            
+            console.log('🔍 可能的问题原因:', possibleIssues);
+        };
+    </script>
+</body>
+</html>

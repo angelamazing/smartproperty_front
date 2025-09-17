@@ -84,12 +84,6 @@
       }
     },
     {
-      "path": "pages/special-reservation/special-reservation",
-      "style": {
-        "navigationBarTitleText": "特殊预约报餐"
-      }
-    },
-    {
       "path": "pages/verification/verification",
       "style": {
         "navigationBarTitleText": "用餐验证"
@@ -157,9 +151,6 @@ uni.switchTab({ url: '/pages/profile/profile' })
 
 ### 2. 普通页面跳转
 ```javascript
-// 跳转到特殊预约报餐
-uni.navigateTo({ url: '/pages/special-reservation/special-reservation' })
-
 // 跳转到用餐验证
 uni.navigateTo({ url: '/pages/verification/verification' })
 ```

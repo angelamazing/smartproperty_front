@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端API修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            color: #28a745;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 前端API修复测试</h1>
+        
+        <div class="test-section info">
+            <h3>📋 修复内容</h3>
+            <ul>
+                <li>✅ 修复了 useApi.js 中硬编码的 baseURL 问题</li>
+                <li>✅ 统一了 API 配置，使用动态获取的服务器地址</li>
+                <li>✅ 添加了环境检测和调试信息</li>
+                <li>✅ 确保前端使用正确的服务器地址</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 测试API连接</h3>
+            <button onclick="testApiConnection()">测试场地列表API</button>
+            <button onclick="testBaseUrl()">测试BaseURL配置</button>
+            <button onclick="clearLog()">清除日志</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 测试结果</h3>
+            <div id="log" class="log">点击上方按钮开始测试...</div>
+        </div>
+
+        <div class="test-section info">
+            <h3>🔍 问题分析</h3>
+            <p><strong>根本原因：</strong></p>
+            <ul>
+                <li>useReservation.js 使用 useApi() 的 request 方法</li>
+                <li>useApi.js 中硬编码了 baseURL = 'http://localhost:3000'</li>
+                <li>实际服务器地址不是 localhost:3000</li>
+                <li>导致前端请求发送到错误的地址</li>
+            </ul>
+            
+            <p><strong>修复方案：</strong></p>
+            <ul>
+                <li>在 useApi.js 中添加动态 baseURL 配置</li>
+                <li>使用环境检测自动选择正确的服务器地址</li>
+                <li>统一 API 配置管理</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let logElement = document.getElementById('log');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            // 根据类型添加样式
+            if (type === 'success') {
+                logElement.style.borderColor = '#28a745';
+            } else if (type === 'error') {
+                logElement.style.borderColor = '#dc3545';
+            } else {
+                logElement.style.borderColor = '#007bff';
+            }
+        }
+        
+        function clearLog() {
+            logElement.textContent = '';
+            log('日志已清除', 'info');
+        }
+        
+        async function testBaseUrl() {
+            log('🔧 测试BaseURL配置...', 'info');
+            
+            // 模拟环境检测
+            const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            const devBaseUrl = 'http://localhost:3000';
+            const prodBaseUrl = 'https://uauotggfeiao.sealosbja.site';
+            
+            const baseUrl = isDev ? devBaseUrl : prodBaseUrl;
+            
+            log(`当前环境: ${isDev ? '开发环境' : '生产环境'}`, 'info');
+            log(`BaseURL: ${baseUrl}`, 'info');
+            log(`当前页面地址: ${window.location.href}`, 'info');
+            
+            if (isDev) {
+                log('⚠️ 检测到开发环境，使用本地服务器', 'info');
+            } else {
+                log('✅ 检测到生产环境，使用远程服务器', 'success');
+            }
+        }
+        
+        async function testApiConnection() {
+            log('🚀 开始测试场地列表API连接...', 'info');
+            
+            // 模拟环境检测
+            const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            const baseUrl = isDev ? 'http://localhost:3000' : 'https://uauotggfeiao.sealosbja.site';
+            const apiUrl = `${baseUrl}/api/venue/available`;
+            
+            log(`测试URL: ${apiUrl}`, 'info');
+            
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log(`HTTP状态码: ${response.status}`, 'info');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    log('✅ API请求成功！', 'success');
+                    log(`响应数据: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    if (data.success && data.data && data.data.venues) {
+                        log(`场地数量: ${data.data.venues.length}`, 'success');
+                        data.data.venues.forEach((venue, index) => {
+                            log(`场地${index + 1}: ${venue.name} (${venue.type})`, 'success');
+                        });
+                    }
+                } else {
+                    log(`❌ API请求失败: HTTP ${response.status}`, 'error');
+                    const errorText = await response.text();
+                    log(`错误详情: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ 网络请求失败: ${error.message}`, 'error');
+                
+                if (error.message.includes('Failed to fetch')) {
+                    log('💡 可能的原因:', 'info');
+                    log('1. 服务器未启动', 'info');
+                    log('2. 网络连接问题', 'info');
+                    log('3. CORS跨域问题', 'info');
+                    log('4. BaseURL配置错误', 'info');
+                }
+            }
+        }
+        
+        // 页面加载时自动测试
+        window.addEventListener('load', () => {
+            log('📱 前端API修复测试页面已加载', 'info');
+            log('点击按钮开始测试...', 'info');
+        });
+    </script>
+</body>
+</html>

@@ -126,27 +126,6 @@ class DiningApi {
     })
   }
 
-  /**
-   * 微信扫码确认就餐
-   * @param {string} qrCode - 二维码标识
-   * @param {string} scanTime - 扫码时间
-   * @returns {Promise} 确认结果
-   */
-  async wechatScanConfirm(qrCode, scanTime) {
-    if (!qrCode) {
-      throw new Error('二维码标识不能为空')
-    }
-
-    const data = {
-      qrCode,
-      scanTime: scanTime || TimeUtils.getCurrentTime()
-    }
-
-    return await this.request('/api/qr-scan/wechat-scan', {
-      method: 'POST',
-      data
-    })
-  }
 
   /**
    * 获取用户今日餐次信息

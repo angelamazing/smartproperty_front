@@ -52,14 +52,6 @@
             <view class="menu-arrow">›</view>
           </view>
           
-          <view class="menu-item" @click="goToQrScan">
-            <view class="menu-icon qr">📱</view>
-            <view class="menu-content">
-              <text class="menu-title">扫码就餐</text>
-              <text class="menu-desc">扫描二维码确认就餐</text>
-            </view>
-            <view class="menu-arrow">›</view>
-          </view>
           
           <view class="menu-item" @click="goToDiningHistory">
             <view class="menu-icon history">📋</view>
@@ -683,11 +675,6 @@ export default {
     /**
      * 跳转到扫码就餐页面
      */
-    goToQrScan() {
-      uni.navigateTo({
-        url: '/pages/dining/qr-scan'
-      })
-    },
 
     /**
      * 跳转到就餐历史页面

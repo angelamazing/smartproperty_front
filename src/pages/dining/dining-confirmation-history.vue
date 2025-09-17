@@ -200,7 +200,7 @@ export default {
     initPage() {
       // 设置默认日期范围（最近30天），使用TimeUtils确保iOS兼容性
       const today = TimeUtils.getCurrentDate()
-      const thirtyDaysAgo = TimeUtils.getPreviousDay(today, 30)
+      const thirtyDaysAgo = TimeUtils.getNextDay(today, -30)
       
       this.filterParams.endDate = today
       this.filterParams.startDate = thirtyDaysAgo

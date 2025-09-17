@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日期格式化修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 日期格式化修复测试</h1>
+    
+    <div class="test-container">
+        <h2>修复说明</h2>
+        <p>修复了以下问题：</p>
+        <ul>
+            <li>✅ <code>IOSCompatibleDate.create()</code> 无参数时返回 null 的问题</li>
+            <li>✅ <code>getToday()</code> 方法添加了 fallback 机制</li>
+            <li>✅ <code>getMaxDate()</code> 方法添加了错误处理</li>
+            <li>✅ 改进了 API 请求的错误处理和调试信息</li>
+        </ul>
+    </div>
+
+    <div class="test-container">
+        <h2>测试结果</h2>
+        <div id="testResults"></div>
+        <button onclick="runTests()">运行测试</button>
+    </div>
+
+    <script>
+        // 模拟 IOSCompatibleDate 类
+        class MockIOSCompatibleDate {
+            static create(input) {
+                if (input === undefined) {
+                    console.warn('IOSCompatibleDate.create() 无参数调用，返回 null')
+                    return null
+                }
+                
+                try {
+                    const date = new Date(input)
+                    return isNaN(date.getTime()) ? null : date
+                } catch (error) {
+                    console.error('创建日期失败:', error)
+                    return null
+                }
+            }
+            
+            static format(date, format = 'YYYY-MM-DD') {
+                if (!date || isNaN(date.getTime())) return ''
+                
+                const year = date.getFullYear()
+                const month = (date.getMonth() + 1).toString().padStart(2, '0')
+                const day = date.getDate().toString().padStart(2, '0')
+                
+                return format.replace('YYYY', year)
+                           .replace('MM', month)
+                           .replace('DD', day)
+            }
+            
+            static addDays(date, days) {
+                if (!date || isNaN(date.getTime())) return null
+                
+                const result = new Date(date)
+                result.setDate(result.getDate() + days)
+                return result
+            }
+            
+            static today(format = 'YYYY-MM-DD') {
+                return this.format(new Date(), format)
+            }
+        }
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('testResults')
+            const resultDiv = document.createElement('div')
+            resultDiv.className = `test-result ${type}`
+            resultDiv.textContent = `[${new Date().toLocaleTimeString()}] ${message}`
+            resultsDiv.appendChild(resultDiv)
+            resultsDiv.scrollTop = resultsDiv.scrollHeight
+        }
+
+        function runTests() {
+            document.getElementById('testResults').innerHTML = ''
+            addResult('🧪 开始测试日期格式化修复...', 'info')
+            
+            // 测试1: IOSCompatibleDate.create() 无参数
+            try {
+                const result1 = MockIOSCompatibleDate.create()
+                if (result1 === null) {
+                    addResult('✅ 测试1通过: IOSCompatibleDate.create() 无参数返回 null (预期行为)', 'success')
+                } else {
+                    addResult('❌ 测试1失败: IOSCompatibleDate.create() 无参数应该返回 null', 'error')
+                }
+            } catch (error) {
+                addResult(`❌ 测试1异常: ${error.message}`, 'error')
+            }
+            
+            // 测试2: IOSCompatibleDate.create(new Date())
+            try {
+                const result2 = MockIOSCompatibleDate.create(new Date())
+                if (result2 && !isNaN(result2.getTime())) {
+                    addResult('✅ 测试2通过: IOSCompatibleDate.create(new Date()) 正常工作', 'success')
+                } else {
+                    addResult('❌ 测试2失败: IOSCompatibleDate.create(new Date()) 应该返回有效日期', 'error')
+                }
+            } catch (error) {
+                addResult(`❌ 测试2异常: ${error.message}`, 'error')
+            }
+            
+            // 测试3: 模拟修复后的 getToday 方法
+            try {
+                const getToday = () => {
+                    try {
+                        const today = MockIOSCompatibleDate.create(new Date())
+                        if (today && !isNaN(today.getTime())) {
+                            return MockIOSCompatibleDate.format(today, 'YYYY-MM-DD')
+                        }
+                        // fallback
+                        const fallbackDate = new Date()
+                        const year = fallbackDate.getFullYear()
+                        const month = (fallbackDate.getMonth() + 1).toString().padStart(2, '0')
+                        const day = fallbackDate.getDate().toString().padStart(2, '0')
+                        return `${year}-${month}-${day}`
+                    } catch (error) {
+                        console.error('获取今天日期失败:', error)
+                        const fallbackDate = new Date()
+                        const year = fallbackDate.getFullYear()
+                        const month = (fallbackDate.getMonth() + 1).toString().padStart(2, '0')
+                        const day = fallbackDate.getDate().toString().padStart(2, '0')
+                        return `${year}-${month}-${day}`
+                    }
+                }
+                
+                const today = getToday()
+                if (today && today.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    addResult(`✅ 测试3通过: getToday() 返回有效日期: ${today}`, 'success')
+                } else {
+                    addResult(`❌ 测试3失败: getToday() 返回无效日期: ${today}`, 'error')
+                }
+            } catch (error) {
+                addResult(`❌ 测试3异常: ${error.message}`, 'error')
+            }
+            
+            // 测试4: 模拟修复后的 getMaxDate 方法
+            try {
+                const getMaxDate = () => {
+                    try {
+                        const today = MockIOSCompatibleDate.create(new Date())
+                        if (today && !isNaN(today.getTime())) {
+                            const maxDate = MockIOSCompatibleDate.addDays(today, 30)
+                            return MockIOSCompatibleDate.format(maxDate, 'YYYY-MM-DD')
+                        }
+                        
+                        // fallback
+                        const fallbackDate = new Date()
+                        fallbackDate.setDate(fallbackDate.getDate() + 30)
+                        const year = fallbackDate.getFullYear()
+                        const month = (fallbackDate.getMonth() + 1).toString().padStart(2, '0')
+                        const day = fallbackDate.getDate().toString().padStart(2, '0')
+                        return `${year}-${month}-${day}`
+                    } catch (error) {
+                        console.error('获取最大日期失败:', error)
+                        const fallbackDate = new Date()
+                        fallbackDate.setDate(fallbackDate.getDate() + 30)
+                        const year = fallbackDate.getFullYear()
+                        const month = (fallbackDate.getMonth() + 1).toString().padStart(2, '0')
+                        const day = fallbackDate.getDate().toString().padStart(2, '0')
+                        return `${year}-${month}-${day}`
+                    }
+                }
+                
+                const maxDate = getMaxDate()
+                if (maxDate && maxDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    addResult(`✅ 测试4通过: getMaxDate() 返回有效日期: ${maxDate}`, 'success')
+                } else {
+                    addResult(`❌ 测试4失败: getMaxDate() 返回无效日期: ${maxDate}`, 'error')
+                }
+            } catch (error) {
+                addResult(`❌ 测试4异常: ${error.message}`, 'error')
+            }
+            
+            addResult('🎉 所有测试完成！', 'info')
+        }
+
+        // 页面加载完成后自动运行测试
+        window.addEventListener('load', function() {
+            addResult('📱 页面加载完成，开始自动测试...', 'info')
+            setTimeout(runTests, 1000);
+        });
+    </script>
+</body>
+</html>

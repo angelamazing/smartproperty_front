@@ -1,0 +1,118 @@
+{
+  "totalFiles": 107,
+  "analyzedFiles": 107,
+  "filesWithIssues": 18,
+  "totalIssues": 34,
+  "fixedFiles": 15,
+  "fixedIssues": 27,
+  "details": [
+    {
+      "file": "src\\components\\form\\DatePicker.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\components\\form\\DatePicker.vue.backup.1757943808697"
+    },
+    {
+      "file": "src\\components\\NotificationManager.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\components\\NotificationManager.vue.backup.1757943808711"
+    },
+    {
+      "file": "src\\components\\SystemNotice.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\components\\SystemNotice.vue.backup.1757943808728"
+    },
+    {
+      "file": "src\\components\\TimeSlotEditModal.vue",
+      "issues": 3,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\components\\TimeSlotEditModal.vue.backup.1757943808748"
+    },
+    {
+      "file": "src\\pages\\admin\\fixed-qr-manager.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\pages\\admin\\fixed-qr-manager.vue.backup.1757943808767"
+    },
+    {
+      "file": "src\\pages\\admin\\menu-edit.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\pages\\admin\\menu-edit.vue.backup.1757943808782"
+    },
+    {
+      "file": "src\\pages\\admin\\qr-generator.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\pages\\admin\\qr-generator.vue.backup.1757943808801"
+    },
+    {
+      "file": "src\\pages\\admin\\settings.vue",
+      "issues": 1,
+      "fixed": 0,
+      "needsManualFix": true
+    },
+    {
+      "file": "src\\pages\\personal-info\\personal-info.vue",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\pages\\personal-info\\personal-info.vue.backup.1757943808826"
+    },
+    {
+      "file": "src\\pages\\reservation\\reservation.vue",
+      "issues": 4,
+      "fixed": 4,
+      "backup": "H:\\my-vue3-project\\src\\pages\\reservation\\reservation.vue.backup.1757943808846"
+    },
+    {
+      "file": "src\\pages\\test-ios-date-fix.vue",
+      "issues": 2,
+      "fixed": 0,
+      "needsManualFix": true
+    },
+    {
+      "file": "src\\utils\\dateFormatter.js",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\utils\\dateFormatter.js.backup.1757943808862"
+    },
+    {
+      "file": "src\\utils\\globalDateFix.js",
+      "issues": 1,
+      "fixed": 1,
+      "backup": "H:\\my-vue3-project\\src\\utils\\globalDateFix.js.backup.1757943808880"
+    },
+    {
+      "file": "src\\utils\\iosCompatibleDate.js",
+      "issues": 5,
+      "fixed": 5,
+      "backup": "H:\\my-vue3-project\\src\\utils\\iosCompatibleDate.js.backup.1757943808898"
+    },
+    {
+      "file": "src\\utils\\iosDateFix.js",
+      "issues": 4,
+      "fixed": 4,
+      "backup": "H:\\my-vue3-project\\src\\utils\\iosDateFix.js.backup.1757943808916"
+    },
+    {
+      "file": "src\\utils\\timeUtils.js",
+      "issues": 2,
+      "fixed": 0,
+      "needsManualFix": true
+    },
+    {
+      "file": "src\\utils\\timeUtilsQuickstart.js",
+      "issues": 2,
+      "fixed": 2,
+      "backup": "H:\\my-vue3-project\\src\\utils\\timeUtilsQuickstart.js.backup.1757943808935"
+    },
+    {
+      "file": "src\\utils\\vendorDateFix.js",
+      "issues": 2,
+      "fixed": 2,
+      "backup": "H:\\my-vue3-project\\src\\utils\\vendorDateFix.js.backup.1757943808949"
+    }
+  ]
+}

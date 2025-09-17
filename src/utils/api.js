@@ -544,17 +544,6 @@ export default {
     batchConfirmOrders: (orderIds) => api.put('/api/dining/orders/batch/confirm', { orderIds })
   },
   
-  // 4. 特殊预约报餐模块
-  reservation: {
-    // 提交特殊预约
-    submit: (reservationData) => api.post('/api/reservation/submit', reservationData),
-    
-    // 获取特殊预约记录
-    getList: (params = {}) => api.get('/api/reservation/list', params),
-    
-    // 审核特殊预约（管理员功能）
-    audit: (reservationId, action, comment) => api.put(`/api/reservation/${reservationId}/audit`, { action, comment })
-  },
   
   // 5. 球馆预约模块
   venue: {
@@ -634,85 +623,17 @@ export default {
       api.get('/api/dining-confirmation/stats', { date, departmentId })
   },
 
-  // 9. 二维码扫码就餐模块
+  // 9. 扫码确认就餐模块（保留核心功能）
   qrScan: {
-    // 普通扫码确认就餐
+    // 扫码确认就餐（核心功能）
     scan: (qrCode = 'DINING_QR_MAIN_001', scanTime) => 
       api.post('/api/qr-scan/scan', { qrCode, scanTime }),
-    
-    // 微信小程序扫码确认就餐
-    wechatScan: (qrCode = 'DINING_QR_MAIN_001', scanTime) => 
-      api.post('/api/qr-scan/wechat-scan', { qrCode, scanTime }),
-    
-    // 生成普通二维码图片
-    generateQRCodeImage: (qrCode = 'DINING_QR_MAIN_001', options = {}) => {
-      const params = {
-        width: options.width || 200,
-        margin: options.margin || 2
-      }
-      return api.get(`/api/qr-scan/qr-codes/${qrCode}/image?${buildQueryString(params)}`)
-    },
-    
-    // 生成包含URL的二维码图片
-    generateQRCodeWithURL: (qrCode = 'DINING_QR_MAIN_001', baseURL = '', options = {}) => {
-      const params = {
-        width: options.width || 200,
-        margin: options.margin || 2,
-        baseURL: baseURL
-      }
-      return api.get(`/api/qr-scan/qr-codes/${qrCode}/image-with-url?${buildQueryString(params)}`)
-    },
-    
-    // 生成安全二维码图片
-    generateSecureQRCode: (qrCode = 'DINING_QR_MAIN_001', baseURL = '', options = {}) => {
-      const params = {
-        width: options.width || 200,
-        margin: options.margin || 2,
-        baseURL: baseURL
-      }
-      return api.get(`/api/qr-scan/qr-codes/${qrCode}/image-secure?${buildQueryString(params)}`)
-    },
-    
-    // 生成微信小程序码
-    generateWechatMiniProgramCode: (qrCode = 'DINING_QR_MAIN_001', options = {}) => {
-      const params = {
-        width: options.width || 200,
-        margin: options.margin || 2
-      }
-      return api.get(`/api/qr-scan/qr-codes/${qrCode}/image-wechat?${buildQueryString(params)}`)
-    },
-    
-    // 生成固定二维码图片（兼容旧接口）
-    generateFixedQRCodeImage: (width = 200, margin = 2) => 
-      api.get(`/api/qr-scan/qr-codes/DINING_QR_MAIN_001/image?width=${width}&margin=${margin}`),
     
     // 获取用户就餐确认状态
     getDiningStatus: (date = null) => {
       const params = date ? { date } : {}
       return api.get('/api/dining-confirmation/status', params)
-    },
-    
-    // 获取用户就餐登记历史
-    getHistory: (params = {}) => api.get('/api/qr-scan/history', params),
-    
-    // 获取今日就餐概览
-    getTodayOverview: () => api.get('/api/qr-scan/today-overview'),
-    
-    // 获取就餐统计信息（管理员）
-    getStatistics: (date) => api.get('/api/qr-scan/statistics', { date }),
-    
-    // 创建二维码（管理员）
-    createQrCode: (qrData) => api.post('/api/qr-scan/qr-codes', qrData),
-    
-    // 获取二维码列表（管理员）
-    getQrCodes: (params = {}) => api.get('/api/qr-scan/qr-codes', params),
-    
-    // 获取二维码详情（管理员）
-    getQrCodeDetail: (qrId) => api.get(`/api/qr-scan/qr-codes/${qrId}`),
-    
-    // 更新二维码状态（管理员）
-    updateQrCodeStatus: (qrId, status) => 
-      api.put(`/api/qr-scan/qr-codes/${qrId}/status`, { status })
+    }
   },
 
   // 4. 管理员模块
