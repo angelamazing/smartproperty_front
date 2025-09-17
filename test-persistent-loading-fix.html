@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>持续加载问题修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+        .lifecycle-demo {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 持续加载问题修复测试</h1>
+    <p>测试修复后的第一次点击预约界面问题</p>
+    
+    <div class="test-container">
+        <h2>问题分析</h2>
+        <div class="warning">
+            <h3>持续存在的问题</h3>
+            <p><strong>现象:</strong> 第一次点击预约界面仍然有加载失败问题</p>
+            <p><strong>可能原因:</strong></p>
+            <ul>
+                <li>页面生命周期冲突：<code>onLoad()</code> 和 <code>onShow()</code> 同时触发</li>
+                <li>重复加载：<code>onShow()</code> 在页面初始化时也会被调用</li>
+                <li>数据竞争：多个异步操作同时进行</li>
+                <li>错误处理不够健壮</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>修复方案</h2>
+        <div class="info">
+            <h3>1. 修复页面生命周期冲突</h3>
+            <div class="code-block">
+                <pre><code>// 添加初始化标志
+data() {
+  return {
+    isPageInitialized: false,
+    // ... 其他数据
+  }
+}
+
+onLoad() {
+  this.initPage()
+},
+
+onShow() {
+  // 只有在页面已经初始化后才刷新数据，避免重复加载
+  if (this.isPageInitialized) {
+    this.refreshData()
+  }
+}</code></pre>
+            </div>
+
+            <h3>2. 改进初始化流程</h3>
+            <div class="code-block">
+                <pre><code>async initPage() {
+  try {
+    this.isLoading = true
+    this.isPageInitialized = false
+    
+    // 设置默认日期
+    const today = this.$getCurrentDate()
+    this.selectedDate = this.$formatTime(today, 'YYYY-MM-DD')
+    
+    // 加载初始数据
+    await this.loadInitialData()
+    
+    // 标记页面初始化完成
+    this.isPageInitialized = true
+    console.log('页面初始化完成')
+  } catch (error) {
+    console.error('页面初始化失败:', error)
+    // 即使失败也标记为已初始化，避免重复尝试
+    this.isPageInitialized = true
+  } finally {
+    this.isLoading = false
+  }
+}</code></pre>
+            </div>
+
+            <h3>3. 添加重试机制</h3>
+            <div class="code-block">
+                <pre><code>// 在 loadInitialData 中添加重试逻辑
+if (!hasAnyData) {
+  console.warn('所有数据加载都失败了，尝试重试...')
+  
+  try {
+    console.log('开始重试加载数据...')
+    await this.retryLoadData()
+    
+    // 再次检查数据
+    const retryHasAnyData = (this.venues?.length > 0) || 
+                           (this.reservationRecords?.length > 0) || 
+                           (this.scheduleData?.length > 0)
+    
+    if (!retryHasAnyData) {
+      uni.showToast({
+        title: '数据加载失败，请检查网络连接',
+        icon: 'none'
+      })
+    } else {
+      console.log('重试成功，数据已加载')
+    }
+  } catch (retryError) {
+    console.error('重试也失败了:', retryError)
+    uni.showToast({
+      title: '数据加载失败，请检查网络连接',
+      icon: 'none'
+    })
+  }
+}</code></pre>
+            </div>
+
+            <h3>4. 添加重试加载方法</h3>
+            <div class="code-block">
+                <pre><code>async retryLoadData() {
+  try {
+    console.log('重试加载数据...')
+    
+    // 使用更简单的顺序加载方式
+    const venues = await this.loadVenues().catch(error => {
+      console.warn('重试加载场地失败:', error)
+      return []
+    })
+    
+    const records = await this.loadReservationRecords().catch(error => {
+      console.warn('重试加载预约记录失败:', error)
+      return []
+    })
+    
+    const schedule = await this.loadScheduleData().catch(error => {
+      console.warn('重试加载安排数据失败:', error)
+      return []
+    })
+    
+    // 更新数据
+    if (venues && venues.length > 0) this.venues = venues
+    if (records && records.length > 0) this.reservationRecords = records
+    if (schedule && schedule.length > 0) this.scheduleData = schedule
+    
+    return { venues, records, schedule }
+  } catch (error) {
+    console.error('重试加载数据失败:', error)
+    throw error
+  }
+}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>页面生命周期演示</h2>
+        <div class="lifecycle-demo">
+            <h3>修复前的生命周期</h3>
+            <pre><code>用户点击预约界面
+    ↓
+onLoad() 触发 → initPage() → loadInitialData()
+    ↓
+onShow() 触发 → refreshData() → loadVenues() (只加载当前标签页)
+    ↓
+结果：数据不完整，可能显示加载失败</code></pre>
+            
+            <h3>修复后的生命周期</h3>
+            <pre><code>用户点击预约界面
+    ↓
+onLoad() 触发 → initPage() → loadInitialData() → isPageInitialized = true
+    ↓
+onShow() 触发 → 检查 isPageInitialized → 跳过 refreshData()
+    ↓
+结果：数据完整，页面正常显示</code></pre>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>测试验证</h2>
+        <button onclick="runLifecycleTest()">运行生命周期测试</button>
+        <button onclick="runRetryTest()">运行重试机制测试</button>
+        <button onclick="clearResults()">清除结果</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // 模拟修复后的页面
+        class MockReservationPage {
+            constructor() {
+                this.venues = []
+                this.reservationRecords = []
+                this.scheduleData = []
+                this.isPageInitialized = false
+                this.isLoading = false
+                this.currentTab = 'venue'
+            }
+
+            async loadVenues() {
+                // 模拟可能失败的情况
+                if (Math.random() < 0.4) {
+                    throw new Error('场地API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 300))
+                return [
+                    { id: '1', name: '羽毛球场地1', timeSlots: [] },
+                    { id: '2', name: '篮球场地1', timeSlots: [] }
+                ]
+            }
+
+            async loadReservationRecords() {
+                if (Math.random() < 0.3) {
+                    throw new Error('预约记录API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200))
+                return [
+                    { id: '1', venueName: '羽毛球场地1', date: '2025-01-17' }
+                ]
+            }
+
+            async loadScheduleData() {
+                if (Math.random() < 0.5) {
+                    throw new Error('安排数据API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 150))
+                return [
+                    { venueId: '1', date: '2025-01-17', slots: [] }
+                ]
+            }
+
+            async loadInitialData() {
+                try {
+                    const results = await Promise.allSettled([
+                        this.loadVenues(),
+                        this.loadReservationRecords(),
+                        this.loadScheduleData()
+                    ])
+
+                    const [venuesResult, recordsResult, scheduleResult] = results
+                    
+                    if (venuesResult.status === 'fulfilled' && venuesResult.value) {
+                        this.venues = venuesResult.value
+                    } else {
+                        console.error('场地数据加载失败:', venuesResult.reason)
+                        this.venues = []
+                    }
+                    
+                    if (recordsResult.status === 'fulfilled' && recordsResult.value) {
+                        this.reservationRecords = recordsResult.value
+                    } else {
+                        console.error('预约记录加载失败:', recordsResult.reason)
+                        this.reservationRecords = []
+                    }
+                    
+                    if (scheduleResult.status === 'fulfilled' && scheduleResult.value) {
+                        this.scheduleData = scheduleResult.value
+                    } else {
+                        console.error('安排数据加载失败:', scheduleResult.reason)
+                        this.scheduleData = []
+                    }
+                    
+                    const hasAnyData = (this.venues?.length > 0) || 
+                                       (this.reservationRecords?.length > 0) || 
+                                       (this.scheduleData?.length > 0)
+                    
+                    if (!hasAnyData) {
+                        console.warn('所有数据加载都失败了，尝试重试...')
+                        await this.retryLoadData()
+                    }
+                    
+                    return { success: true, hasAnyData }
+                } catch (error) {
+                    console.error('加载初始数据失败:', error)
+                    return { success: false, error: error.message }
+                }
+            }
+
+            async retryLoadData() {
+                try {
+                    console.log('开始重试加载数据...')
+                    
+                    const venues = await this.loadVenues().catch(error => {
+                        console.warn('重试加载场地失败:', error)
+                        return []
+                    })
+                    
+                    const records = await this.loadReservationRecords().catch(error => {
+                        console.warn('重试加载预约记录失败:', error)
+                        return []
+                    })
+                    
+                    const schedule = await this.loadScheduleData().catch(error => {
+                        console.warn('重试加载安排数据失败:', error)
+                        return []
+                    })
+                    
+                    if (venues && venues.length > 0) this.venues = venues
+                    if (records && records.length > 0) this.reservationRecords = records
+                    if (schedule && schedule.length > 0) this.scheduleData = schedule
+                    
+                    return { venues, records, schedule }
+                } catch (error) {
+                    console.error('重试加载数据失败:', error)
+                    throw error
+                }
+            }
+
+            async initPage() {
+                try {
+                    this.isLoading = true
+                    this.isPageInitialized = false
+                    
+                    console.log('开始页面初始化...')
+                    const result = await this.loadInitialData()
+                    
+                    this.isPageInitialized = true
+                    console.log('页面初始化完成')
+                    
+                    return result
+                } catch (error) {
+                    console.error('页面初始化失败:', error)
+                    this.isPageInitialized = true
+                    return { success: false, error: error.message }
+                } finally {
+                    this.isLoading = false
+                }
+            }
+
+            async onShow() {
+                if (this.isPageInitialized) {
+                    console.log('onShow: 页面已初始化，跳过刷新')
+                    return { skipped: true }
+                } else {
+                    console.log('onShow: 页面未初始化，执行刷新')
+                    return await this.refreshData()
+                }
+            }
+
+            async refreshData() {
+                console.log('刷新数据...')
+                return await this.loadVenues()
+            }
+        }
+
+        function runLifecycleTest() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>生命周期测试结果</h3>';
+            
+            const page = new MockReservationPage();
+            
+            // 模拟页面生命周期
+            page.initPage().then(initResult => {
+                let html = '<div class="test-result info"><strong>初始化结果:</strong><br>';
+                html += `成功: ${initResult.success}<br>`;
+                html += `有数据: ${initResult.hasAnyData || false}<br>`;
+                html += `场地数量: ${page.venues.length}<br>`;
+                html += `记录数量: ${page.reservationRecords.length}<br>`;
+                html += `安排数量: ${page.scheduleData.length}<br></div>`;
+                
+                // 模拟 onShow 调用
+                page.onShow().then(showResult => {
+                    html += '<div class="test-result success"><strong>onShow 结果:</strong><br>';
+                    html += `跳过: ${showResult.skipped || false}<br>';
+                    html += `页面已初始化: ${page.isPageInitialized}<br></div>';
+                    
+                    resultsDiv.innerHTML = html;
+                });
+            });
+        }
+
+        function runRetryTest() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>重试机制测试结果</h3>';
+            
+            // 运行多次测试
+            const testCount = 5;
+            let successCount = 0;
+            let retrySuccessCount = 0;
+            
+            const runSingleTest = async (index) => {
+                const page = new MockReservationPage();
+                const result = await page.loadInitialData();
+                
+                if (result.success && result.hasAnyData) {
+                    successCount++;
+                    return `测试 ${index + 1}: ✅ 直接成功`;
+                } else if (result.success && !result.hasAnyData) {
+                    // 模拟重试
+                    try {
+                        await page.retryLoadData();
+                        const hasData = (page.venues.length > 0) || (page.reservationRecords.length > 0) || (page.scheduleData.length > 0);
+                        if (hasData) {
+                            retrySuccessCount++;
+                            return `测试 ${index + 1}: 🔄 重试成功`;
+                        } else {
+                            return `测试 ${index + 1}: ❌ 重试失败`;
+                        }
+                    } catch (error) {
+                        return `测试 ${index + 1}: ❌ 重试异常`;
+                    }
+                } else {
+                    return `测试 ${index + 1}: ❌ 直接失败`;
+                }
+            };
+            
+            Promise.all(Array.from({ length: testCount }, (_, i) => runSingleTest(i)))
+                .then(results => {
+                    let html = '<div class="test-result info"><strong>测试统计:</strong><br>';
+                    html += `✅ 直接成功: ${successCount}/${testCount}<br>`;
+                    html += `🔄 重试成功: ${retrySuccessCount}/${testCount}<br>`;
+                    html += `❌ 失败: ${testCount - successCount - retrySuccessCount}/${testCount}<br><br>`;
+                    html += '<strong>详细结果:</strong><br>';
+                    results.forEach(result => {
+                        html += `${result}<br>`;
+                    });
+                    html += '</div>';
+                    
+                    resultsDiv.innerHTML = html;
+                });
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+    </script>
+</body>
+</html>

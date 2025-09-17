@@ -361,8 +361,8 @@
 import auth from '@/utils/auth.js'
 import api from '@/utils/api.js'
 import TimeUtils from '@/utils/timeUtils.js'
+import VenueUtils from '@/utils/venueUtils.js'
 import timeMixin from '@/mixins/timeMixin.js'
-// 移除dayjs依赖，使用原生JavaScript Date对象
 
 export default {
   name: 'Reservation',
@@ -373,6 +373,7 @@ export default {
     return {
       currentTab: 'venue',
       isLoading: false,
+      isPageInitialized: false,
       
       // 场地相关
       selectedDate: '',
@@ -420,11 +421,8 @@ export default {
   computed: {
     venueTypes() {
       return [
-        { label: '全部', value: 'all' },
-        { label: '羽毛球', value: 'badminton' },
-        { label: '乒乓球', value: 'pingpong' },
-        { label: '篮球', value: 'basketball' },
-        { label: '其他', value: 'other' }
+        { label: '全部', value: 'all', icon: '🏟️' },
+        ...VenueUtils.getVenueTypeOptions()
       ]
     },
 
@@ -456,7 +454,10 @@ export default {
   },
 
   onShow() {
-    this.refreshData()
+    // 简化：只在需要时刷新当前标签页数据
+    if (this.isPageInitialized) {
+      this.refreshData()
+    }
   },
 
   onPullDownRefresh() {
@@ -480,42 +481,23 @@ export default {
         this.isLoading = true
         
         // 设置默认日期为今天
-        this.selectedDate = this.$getCurrentDate()
-        this.recordFilter.date = this.$getCurrentDate()
-        this.scheduleFilter.date = this.$getCurrentDate()
+        const today = this.$getCurrentDate()
+        this.selectedDate = this.$formatTime(today, 'YYYY-MM-DD')
+        this.recordFilter.date = this.$formatTime(today, 'YYYY-MM-DD')
+        this.scheduleFilter.date = this.$formatTime(today, 'YYYY-MM-DD')
         
-        // 加载初始数据
-        await this.loadInitialData()
+        // 只加载场地数据，其他数据按需加载
+        await this.loadVenues()
+        
+        this.isPageInitialized = true
       } catch (error) {
         console.error('页面初始化失败:', error)
-        uni.showToast({
-          title: '页面加载失败',
-          icon: 'none'
-        })
+        this.isPageInitialized = true
       } finally {
         this.isLoading = false
       }
     },
 
-    /**
-     * 加载初始数据
-     */
-    async loadInitialData() {
-      try {
-        // 并行加载数据
-        const [venues, records, schedule] = await Promise.all([
-          this.loadVenues(),
-          this.loadReservationRecords(),
-          this.loadScheduleData()
-        ])
-
-        this.venues = venues
-        this.reservationRecords = records
-        this.scheduleData = schedule
-      } catch (error) {
-        console.error('加载初始数据失败:', error)
-      }
-    },
 
     /**
      * 刷新数据
@@ -555,15 +537,20 @@ export default {
       try {
         // 使用iOS兼容的Date对象处理日期
         const currentDate = this.$createSafeDate(this.selectedDate)
-        if (isNaN(currentDate.getTime())) {
+        if (!currentDate || isNaN(currentDate.getTime())) {
           console.error('无法解析当前日期:', this.selectedDate)
           return
         }
         
         const previousDay = this.$createDate(currentDate)
+        if (!previousDay) {
+          console.error('无法创建前一天日期对象')
+          return
+        }
+        
         previousDay.setDate(currentDate.getDate() - 1)
         
-        this.selectedDate = this.formatDateForPicker(previousDay)
+        this.selectedDate = this.$formatTime(previousDay, 'YYYY-MM-DD')
         this.loadVenues()
       } catch (error) {
         console.error('日期切换错误:', error)
@@ -574,15 +561,20 @@ export default {
       try {
         // 使用iOS兼容的Date对象处理日期
         const currentDate = this.$createSafeDate(this.selectedDate)
-        if (isNaN(currentDate.getTime())) {
+        if (!currentDate || isNaN(currentDate.getTime())) {
           console.error('无法解析当前日期:', this.selectedDate)
           return
         }
         
         const nextDay = this.$createDate(currentDate)
+        if (!nextDay) {
+          console.error('无法创建下一天日期对象')
+          return
+        }
+        
         nextDay.setDate(currentDate.getDate() + 1)
         
-        this.selectedDate = this.formatDateForPicker(nextDay)
+        this.selectedDate = this.$formatTime(nextDay, 'YYYY-MM-DD')
         this.loadVenues()
       } catch (error) {
         console.error('日期切换错误:', error)
@@ -602,13 +594,53 @@ export default {
      */
     async loadVenues() {
       try {
-        const type = this.selectedVenueType === 'all' ? '' : this.selectedVenueType
-        const result = await api.venue.getList(this.selectedDate, type)
+        this.isLoading = true
         
-        this.venues = result.data || []
+        // 确保日期格式正确
+        const dateStr = this.selectedDate ? this.$formatTime(this.selectedDate, 'YYYY-MM-DD') : this.$getCurrentDate()
+        
+        const params = {
+          date: dateStr,
+          type: this.selectedVenueType === 'all' ? '' : this.selectedVenueType,
+          page: 1,
+          pageSize: 20
+        }
+        
+        // 过滤掉空值参数
+        const filteredParams = Object.fromEntries(
+          Object.entries(params).filter(([key, value]) => value !== '' && value !== undefined)
+        )
+        
+        const response = await api.venue.getList(filteredParams)
+        
+        if (response && response.success) {
+          const venues = response.data?.list || []
+          
+          // 简化：为每个场地生成时间段
+          for (const venue of venues) {
+            try {
+              venue.timeSlots = await this.generateTimeSlots(venue)
+            } catch (error) {
+              console.warn(`场地 ${venue.name} 时间段生成失败:`, error)
+              venue.timeSlots = []
+            }
+          }
+          
+          this.venues = venues
+          return venues
+        } else {
+          throw new Error(response?.message || '获取场地列表失败')
+        }
       } catch (error) {
         console.error('加载场地失败:', error)
+        uni.showToast({
+          title: '加载场地失败',
+          icon: 'none'
+        })
         this.venues = []
+        return []
+      } finally {
+        this.isLoading = false
       }
     },
 
@@ -624,19 +656,31 @@ export default {
           pageSize: this.pageSize
         }
         
-        const result = await api.venue.getReservations(params)
+        const response = await api.venue.getMyReservations(params)
         
-        if (this.page === 1) {
-          this.reservationRecords = result.data?.records || []
+        if (response && response.success) {
+          const records = response.data?.records || []
+          
+          if (this.page === 1) {
+            this.reservationRecords = records
+          } else {
+            this.reservationRecords = [...(this.reservationRecords || []), ...records]
+          }
+          
+          this.hasMoreRecords = response.data?.hasMore || false
+          return this.reservationRecords
         } else {
-          this.reservationRecords = [...(this.reservationRecords || []), ...(result.data?.records || [])]
+          throw new Error(response?.message || '获取预约记录失败')
         }
-        
-        this.hasMoreRecords = result.data?.hasMore || false
       } catch (error) {
         console.error('加载预约记录失败:', error)
+        uni.showToast({
+          title: '加载预约记录失败',
+          icon: 'none'
+        })
         this.reservationRecords = []
         this.hasMoreRecords = false
+        return []
       }
     },
 
@@ -646,12 +690,23 @@ export default {
     async loadScheduleData() {
       try {
         const venueType = this.scheduleFilter.venueType === '全部' ? '' : this.scheduleFilter.venueType
-        const result = await api.venue.getSchedule(this.scheduleFilter.date, venueType)
+        const response = await api.venue.getScheduleByType(this.scheduleFilter.date, venueType)
         
-        this.scheduleData = result.data || []
+        if (response && response.success) {
+          const scheduleData = response.data || []
+          this.scheduleData = scheduleData
+          return scheduleData
+        } else {
+          throw new Error(response?.message || '获取场地安排失败')
+        }
       } catch (error) {
         console.error('加载场地安排失败:', error)
+        uni.showToast({
+          title: '加载场地安排失败',
+          icon: 'none'
+        })
         this.scheduleData = []
+        return []
       }
     },
 
@@ -708,17 +763,51 @@ export default {
       try {
         this.is提交ting = true
         
+        // 验证预约时间
+        const timeValidation = VenueUtils.validateReservationTime(
+          this.selectedDate,
+          this.selectedTimeSlot.startTime,
+          this.selectedTimeSlot.endTime,
+          this.selectedVenue
+        )
+        
+        if (!timeValidation.valid) {
+          uni.showToast({
+            title: timeValidation.message,
+            icon: 'none'
+          })
+          return
+        }
+        
+        // 检查时间段可用性
+        const availabilityResponse = await api.venue.checkAvailability(
+          this.selectedVenue._id,
+          this.selectedDate,
+          this.selectedTimeSlot.startTime,
+          this.selectedTimeSlot.endTime
+        )
+        
+        if (availabilityResponse && availabilityResponse.success && !availabilityResponse.data.available) {
+          uni.showToast({
+            title: availabilityResponse.data.reason || '该时间段不可用',
+            icon: 'none'
+          })
+          return
+        }
+        
         const reservationData = {
           venueId: this.selectedVenue._id,
           date: this.selectedDate,
           startTime: this.selectedTimeSlot.startTime,
           endTime: this.selectedTimeSlot.endTime,
-          ...this.reservationForm
+          purpose: this.reservationForm.purpose,
+          remark: this.reservationForm.remark,
+          participants: this.reservationForm.participants || 1
         }
         
-        const result = await api.venue.submitReservation(reservationData)
+        const response = await api.venue.submitReservation(reservationData)
         
-        if (result && result.success) {
+        if (response && response.success) {
           uni.showToast({
             title: '预约提交成功',
             icon: 'success'
@@ -730,7 +819,7 @@ export default {
           // 刷新数据
           this.refreshData()
         } else {
-          throw new Error(result.message || '提交失败')
+          throw new Error(response?.message || '提交失败')
         }
       } catch (error) {
         console.error('提交预约失败:', error)
@@ -800,25 +889,14 @@ export default {
      * 获取场地状态文本
      */
     getVenueStatusText(status) {
-      const statusMap = {
-        'open': '开放',
-        'closed': '关闭',
-        'maintenance': '维护中'
-      }
-      return statusMap[status] || '未知状态'
+      return VenueUtils.getVenueStatusText(status)
     },
 
     /**
      * 获取场地类型文本
      */
     getVenueTypeText(type) {
-      const typeMap = {
-        'badminton': '羽毛球',
-        'pingpong': '乒乓球',
-        'basketball': '篮球',
-        'other': '其他'
-      }
-      return typeMap[type] || '未知类型'
+      return VenueUtils.getVenueTypeText(type)
     },
 
     /**
@@ -832,12 +910,7 @@ export default {
      * 获取时间段状态文本
      */
     getSlotStatusText(status) {
-      const statusMap = {
-        'available': '可预约',
-        'reserved': '已预约',
-        'maintenance': '维护中'
-      }
-      return statusMap[status] || '未知状态'
+      return VenueUtils.getTimeSlotStatusText(status)
     },
 
     /**
@@ -954,10 +1027,20 @@ export default {
       try {
         // 使用原生Date对象进行日期比较，避免dayjs配置问题
         const targetDate = this.$createDate(dateStr)
-        if (isNaN(targetDate.getTime())) return ''
+        if (!targetDate || isNaN(targetDate.getTime())) return ''
         
         const today = this.$createSafeDate()
+        if (!today) {
+          console.error('无法创建当前日期对象')
+          return this.formatDateWithWeekday(targetDate)
+        }
+        
         const tomorrow = this.$createDate(today)
+        if (!tomorrow) {
+          console.error('无法创建明天日期对象')
+          return this.formatDateWithWeekday(targetDate)
+        }
+        
         tomorrow.setDate(today.getDate() + 1)
         
         // 判断是否为今天或明天
@@ -1014,24 +1097,53 @@ export default {
     },
 
     /**
+     * 生成场地时间段
+     */
+    async generateTimeSlots(venue) {
+      try {
+        // 获取场地时间安排
+        const scheduleResponse = await api.venue.getSchedule(venue._id, this.selectedDate)
+        
+        if (scheduleResponse && scheduleResponse.success) {
+          const schedule = scheduleResponse.data
+          return VenueUtils.generateTimeSlots(
+            venue.openTime || '08:00',
+            venue.closeTime || '22:00',
+            1, // 1小时时间段
+            schedule.bookedSlots || []
+          )
+        } else {
+          // 如果获取时间安排失败，生成默认时间段
+          return VenueUtils.generateTimeSlots(
+            venue.openTime || '08:00',
+            venue.closeTime || '22:00',
+            1
+          )
+        }
+      } catch (error) {
+        console.error('生成时间段失败:', error)
+        // 返回默认时间段
+        return VenueUtils.generateTimeSlots(
+          venue.openTime || '08:00',
+          venue.closeTime || '22:00',
+          1
+        )
+      }
+    },
+
+    /**
      * 获取场地类型图标
      */
     getVenueTypeIcon(type) {
-      const iconMap = {
-        'all': '🏟️',
-        'badminton': '🏸',
-        'pingpong': '🏓',
-        'basketball': '🏀',
-        'other': '⚽'
-      }
-      return iconMap[type] || '🏟️'
+      return VenueUtils.getVenueTypeIcon(type)
     },
 
     /**
      * 日期选择器变化
      */
     onDatePickerChange(e) {
-      this.selectedDate = e.detail.value
+      // 确保日期格式为YYYY-MM-DD
+      this.selectedDate = this.$formatTime(e.detail.value, 'YYYY-MM-DD')
       this.loadVenues()
     }
   }

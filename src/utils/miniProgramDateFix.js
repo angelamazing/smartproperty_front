@@ -49,6 +49,10 @@ export function isMiniProgramIOS() {
 export function createSafeDate(input) {
   // 如果在微信小程序 iOS 环境中，使用兼容版本
   if (isMiniProgramIOS()) {
+    // 特殊处理：当 input 为 undefined 时，直接创建当前时间
+    if (input === undefined) {
+      return new Date();
+    }
     return IOSCompatibleDate.create(input);
   }
   

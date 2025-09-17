@@ -272,6 +272,7 @@
 
 <script>
 import api from '@/utils/api.js'
+import VenueUtils from '@/utils/venueUtils.js'
 import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
@@ -347,13 +348,13 @@ export default {
       try {
         this.isLoading = true
         
-        const result = await api.venue.getDetail(this.venueId)
+        const response = await api.venue.getDetail(this.venueId)
         
-        if (result && result.success) {
-          this.venueInfo = result.data
+        if (response && response.success) {
+          this.venueInfo = response.data
           await this.loadTimeSlots()
         } else {
-          throw new Error(result.message || '加载失败')
+          throw new Error(response?.message || '获取场地详情失败')
         }
       } catch (error) {
         console.error('加载场地详情失败:', error)
@@ -371,18 +372,33 @@ export default {
      */
     async loadTimeSlots() {
       try {
-        const result = await api.venue.getSchedule(this.venueId, this.selectedDate)
+        const response = await api.venue.getSchedule(this.venueId, this.selectedDate)
         
-        if (result && result.success) {
-          this.timeSlots = result.data || []
+        if (response && response.success) {
+          const schedule = response.data
+          // 使用VenueUtils生成时间段
+          this.timeSlots = VenueUtils.generateTimeSlots(
+            this.venueInfo.openTime || '08:00',
+            this.venueInfo.closeTime || '22:00',
+            1, // 1小时时间段
+            schedule.bookedSlots || []
+          )
         } else {
           // 如果API失败，使用本地生成的时间段
-          this.timeSlots = this.generateTimeSlots(this.venueInfo, this.selectedDate)
+          this.timeSlots = VenueUtils.generateTimeSlots(
+            this.venueInfo.openTime || '08:00',
+            this.venueInfo.closeTime || '22:00',
+            1
+          )
         }
       } catch (error) {
         console.error('加载时间段失败:', error)
         // 使用本地生成的时间段作为备选
-        this.timeSlots = this.generateTimeSlots(this.venueInfo, this.selectedDate)
+        this.timeSlots = VenueUtils.generateTimeSlots(
+          this.venueInfo.openTime || '08:00',
+          this.venueInfo.closeTime || '22:00',
+          1
+        )
       }
     },
 
@@ -574,17 +590,51 @@ export default {
       try {
         this.isSubmitting = true
         
+        // 验证预约时间
+        const timeValidation = VenueUtils.validateReservationTime(
+          this.selectedDate,
+          this.selectedTimeSlot.startTime,
+          this.selectedTimeSlot.endTime,
+          this.venueInfo
+        )
+        
+        if (!timeValidation.valid) {
+          uni.showToast({
+            title: timeValidation.message,
+            icon: 'none'
+          })
+          return
+        }
+        
+        // 检查时间段可用性
+        const availabilityResponse = await api.venue.checkAvailability(
+          this.venueId,
+          this.selectedDate,
+          this.selectedTimeSlot.startTime,
+          this.selectedTimeSlot.endTime
+        )
+        
+        if (availabilityResponse && availabilityResponse.success && !availabilityResponse.data.available) {
+          uni.showToast({
+            title: availabilityResponse.data.reason || '该时间段不可用',
+            icon: 'none'
+          })
+          return
+        }
+        
         const reservationData = {
           venueId: this.venueId,
           date: this.selectedDate,
           startTime: this.selectedTimeSlot.startTime,
           endTime: this.selectedTimeSlot.endTime,
-          ...this.reservationForm
+          purpose: this.reservationForm.purpose,
+          remark: this.reservationForm.remark,
+          participants: this.reservationForm.participants || 1
         }
         
-        const result = await api.venue.submitReservation(reservationData)
+        const response = await api.venue.submitReservation(reservationData)
         
-        if (result && result.success) {
+        if (response && response.success) {
           uni.showToast({
             title: '预约提交成功',
             icon: 'success'
@@ -596,7 +646,7 @@ export default {
           // 刷新时间段
           await this.loadTimeSlots()
         } else {
-          throw new Error(result.message || '提交失败')
+          throw new Error(response?.message || '提交失败')
         }
       } catch (error) {
         console.error('提交预约失败:', error)
@@ -702,40 +752,21 @@ export default {
      * 获取场地状态文本
      */
     getStatusText(status) {
-      const statusMap = {
-        'active': '开放',
-        'inactive': '关闭',
-        'maintenance': '维护中'
-      }
-      return statusMap[status] || '未知状态'
+      return VenueUtils.getVenueStatusText(status)
     },
 
     /**
      * 获取场地类型文本
      */
     getTypeText(type) {
-      const typeMap = {
-        'badminton': '羽毛球',
-        'pingpong': '乒乓球',
-        'basketball': '篮球',
-        'meeting': '会议室',
-        'other': '其他'
-      }
-      return typeMap[type] || '未知类型'
+      return VenueUtils.getVenueTypeText(type)
     },
 
     /**
      * 获取场地类型图标
      */
     getTypeIcon(type) {
-      const iconMap = {
-        'badminton': '🏸',
-        'pingpong': '🏓',
-        'basketball': '🏀',
-        'meeting': '🏢',
-        'other': '⚽'
-      }
-      return iconMap[type] || '🏟️'
+      return VenueUtils.getVenueTypeIcon(type)
     },
 
     /**

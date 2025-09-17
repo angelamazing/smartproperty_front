@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>加载失败修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .code-block {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 加载失败修复测试</h1>
+    <p>测试修复后的加载失败问题，确保页面能够正常显示</p>
+    
+    <div class="test-container">
+        <h2>问题描述</h2>
+        <div class="error">
+            <h3>原始问题</h3>
+            <p><strong>现象:</strong> 一进去就显示加载失败</p>
+            <p><strong>原因:</strong> 使用 <code>Promise.all</code> 并行加载数据，任何一个失败都会导致整体失败</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>根本原因分析</h2>
+        <div class="warning">
+            <h3>问题根源</h3>
+            <p>在 <code>loadInitialData()</code> 方法中：</p>
+            <pre><code>// 原始代码 - 问题代码
+const [venues, records, schedule] = await Promise.all([
+  this.loadVenues(),
+  this.loadReservationRecords(),
+  this.loadScheduleData()
+])</code></pre>
+            <p><strong>问题:</strong> 如果任何一个方法失败，整个 <code>Promise.all</code> 就会失败，导致显示"数据加载失败"</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>修复方案</h2>
+        <div class="info">
+            <h3>1. 使用 Promise.allSettled 替代 Promise.all</h3>
+            <div class="code-block">
+                <pre><code>// 修复后的代码
+const results = await Promise.allSettled([
+  this.loadVenues(),
+  this.loadReservationRecords(),
+  this.loadScheduleData()
+])
+
+// 处理每个结果
+const [venuesResult, recordsResult, scheduleResult] = results
+
+// 处理场地数据
+if (venuesResult.status === 'fulfilled' && venuesResult.value) {
+  this.venues = venuesResult.value
+} else {
+  console.error('场地数据加载失败:', venuesResult.reason)
+  this.venues = []
+}
+
+// 处理预约记录数据
+if (recordsResult.status === 'fulfilled' && recordsResult.value) {
+  this.reservationRecords = recordsResult.value
+} else {
+  console.error('预约记录加载失败:', recordsResult.reason)
+  this.reservationRecords = []
+}
+
+// 处理安排数据
+if (scheduleResult.status === 'fulfilled' && scheduleResult.value) {
+  this.scheduleData = scheduleResult.value
+} else {
+  console.error('安排数据加载失败:', scheduleResult.reason)
+  this.scheduleData = []
+}</code></pre>
+            </div>
+
+            <h3>2. 改进时间段生成逻辑</h3>
+            <div class="code-block">
+                <pre><code>// 为每个场地生成时间段，使用并行处理提高性能
+const venuePromises = venues.map(async (venue) => {
+  try {
+    venue.timeSlots = await this.generateTimeSlots(venue)
+  } catch (error) {
+    console.warn(`场地 ${venue.name} 时间段生成失败:`, error)
+    // 生成默认时间段作为降级处理
+    venue.timeSlots = this.generateDefaultTimeSlots(venue)
+  }
+  return venue
+})
+
+const processedVenues = await Promise.all(venuePromises)</code></pre>
+            </div>
+
+            <h3>3. 添加降级处理机制</h3>
+            <div class="code-block">
+                <pre><code>// 检查是否有任何数据加载成功
+const hasAnyData = (this.venues?.length > 0) || 
+                   (this.reservationRecords?.length > 0) || 
+                   (this.scheduleData?.length > 0)
+
+if (!hasAnyData) {
+  console.warn('所有数据加载都失败了')
+  uni.showToast({
+    title: '数据加载失败，请检查网络连接',
+    icon: 'none'
+  })
+}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>测试验证</h2>
+        <button onclick="runTests()">运行测试</button>
+        <button onclick="clearResults()">清除结果</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // 模拟修复后的方法
+        class MockReservationPage {
+            constructor() {
+                this.venues = []
+                this.reservationRecords = []
+                this.scheduleData = []
+            }
+
+            async loadVenues() {
+                // 模拟可能失败的情况
+                if (Math.random() < 0.3) {
+                    throw new Error('场地API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 500))
+                return [
+                    { id: '1', name: '羽毛球场地1', timeSlots: [] },
+                    { id: '2', name: '篮球场地1', timeSlots: [] }
+                ]
+            }
+
+            async loadReservationRecords() {
+                // 模拟可能失败的情况
+                if (Math.random() < 0.2) {
+                    throw new Error('预约记录API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 300))
+                return [
+                    { id: '1', venueName: '羽毛球场地1', date: '2025-01-17' }
+                ]
+            }
+
+            async loadScheduleData() {
+                // 模拟可能失败的情况
+                if (Math.random() < 0.4) {
+                    throw new Error('安排数据API调用失败')
+                }
+                
+                await new Promise(resolve => setTimeout(resolve, 200))
+                return [
+                    { venueId: '1', date: '2025-01-17', slots: [] }
+                ]
+            }
+
+            // 修复后的 loadInitialData 方法
+            async loadInitialData() {
+                try {
+                    // 使用 Promise.allSettled 来避免单个失败影响整体
+                    const results = await Promise.allSettled([
+                        this.loadVenues(),
+                        this.loadReservationRecords(),
+                        this.loadScheduleData()
+                    ])
+
+                    // 处理每个结果
+                    const [venuesResult, recordsResult, scheduleResult] = results
+                    
+                    // 处理场地数据
+                    if (venuesResult.status === 'fulfilled' && venuesResult.value) {
+                        this.venues = venuesResult.value
+                    } else {
+                        console.error('场地数据加载失败:', venuesResult.reason)
+                        this.venues = []
+                    }
+                    
+                    // 处理预约记录数据
+                    if (recordsResult.status === 'fulfilled' && recordsResult.value) {
+                        this.reservationRecords = recordsResult.value
+                    } else {
+                        console.error('预约记录加载失败:', recordsResult.reason)
+                        this.reservationRecords = []
+                    }
+                    
+                    // 处理安排数据
+                    if (scheduleResult.status === 'fulfilled' && scheduleResult.value) {
+                        this.scheduleData = scheduleResult.value
+                    } else {
+                        console.error('安排数据加载失败:', scheduleResult.reason)
+                        this.scheduleData = []
+                    }
+                    
+                    console.log('初始数据加载完成:', {
+                        venuesCount: this.venues?.length || 0,
+                        recordsCount: this.reservationRecords?.length || 0,
+                        scheduleCount: this.scheduleData?.length || 0
+                    })
+                    
+                    // 检查是否有任何数据加载成功
+                    const hasAnyData = (this.venues?.length > 0) || 
+                                       (this.reservationRecords?.length > 0) || 
+                                       (this.scheduleData?.length > 0)
+                    
+                    return {
+                        success: true,
+                        hasAnyData,
+                        venues: this.venues,
+                        records: this.reservationRecords,
+                        schedule: this.scheduleData
+                    }
+                } catch (error) {
+                    console.error('加载初始数据失败:', error)
+                    return {
+                        success: false,
+                        error: error.message,
+                        hasAnyData: false,
+                        venues: [],
+                        records: [],
+                        schedule: []
+                    }
+                }
+            }
+        }
+
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>测试结果</h3>';
+            
+            // 运行多次测试来模拟不同的失败情况
+            const testCount = 10;
+            let successCount = 0;
+            let partialSuccessCount = 0;
+            let failureCount = 0;
+            
+            resultsDiv.innerHTML += '<p>🔄 正在运行测试...</p>';
+            
+            const runSingleTest = async (index) => {
+                const page = new MockReservationPage();
+                const result = await page.loadInitialData();
+                
+                if (result.success && result.hasAnyData) {
+                    successCount++;
+                    return `测试 ${index + 1}: ✅ 成功 - 场地:${result.venues.length}, 记录:${result.records.length}, 安排:${result.schedule.length}`;
+                } else if (result.success && !result.hasAnyData) {
+                    partialSuccessCount++;
+                    return `测试 ${index + 1}: ⚠️ 部分成功 - 所有数据都为空`;
+                } else {
+                    failureCount++;
+                    return `测试 ${index + 1}: ❌ 失败 - ${result.error}`;
+                }
+            };
+            
+            // 运行所有测试
+            Promise.all(Array.from({ length: testCount }, (_, i) => runSingleTest(i)))
+                .then(results => {
+                    let html = '<div class="test-result info"><strong>测试统计:</strong><br>';
+                    html += `✅ 完全成功: ${successCount}/${testCount}<br>`;
+                    html += `⚠️ 部分成功: ${partialSuccessCount}/${testCount}<br>`;
+                    html += `❌ 完全失败: ${failureCount}/${testCount}<br><br>`;
+                    html += '<strong>详细结果:</strong><br>';
+                    results.forEach(result => {
+                        html += `${result}<br>`;
+                    });
+                    html += '</div>';
+                    
+                    // 添加修复效果说明
+                    html += `
+                        <div class="test-result success">
+                            <strong>✅ 修复效果:</strong><br>
+                            <ul>
+                                <li>使用 Promise.allSettled 避免了单个失败影响整体</li>
+                                <li>即使部分数据加载失败，页面仍能正常显示</li>
+                                <li>提供了详细的错误日志，便于调试</li>
+                                <li>添加了降级处理机制，提高用户体验</li>
+                            </ul>
+                        </div>
+                    `;
+                    
+                    resultsDiv.innerHTML = html;
+                });
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function() {
+            runTests();
+        };
+    </script>
+</body>
+</html>

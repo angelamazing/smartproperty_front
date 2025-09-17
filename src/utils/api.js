@@ -548,16 +548,57 @@ export default {
   // 5. 球馆预约模块
   venue: {
     // 获取场地列表
-    getList: (date, type) => api.get('/api/venue/list', { date, type }),
+    getList: (params = {}) => api.get('/api/venue/list', params),
+    
+    // 获取场地详情
+    getDetail: (venueId) => api.get(`/api/venue/${venueId}`),
+    
+    // 获取场地时间安排
+    getSchedule: (venueId, date) => api.get(`/api/venue/${venueId}/schedule`, { date }),
+    
+    // 检查时间段可用性
+    checkAvailability: (venueId, date, startTime, endTime) => 
+      api.get('/api/venue/check-availability', { venueId, date, startTime, endTime }),
     
     // 提交场地预约
     submitReservation: (reservationData) => api.post('/api/venue/reservation', reservationData),
     
-    // 获取预约记录
-    getReservations: (params = {}) => api.get('/api/venue/reservations', params),
+    // 获取我的预约记录
+    getMyReservations: (params = {}) => api.get('/api/venue/my-reservations', params),
     
-    // 获取场地安排表
-    getSchedule: (date, venueType) => api.get('/api/venue/schedule', { date, venueType })
+    // 取消预约
+    cancelReservation: (reservationId) => api.put(`/api/venue/reservations/${reservationId}/cancel`),
+    
+    // 获取预约详情
+    getReservationDetail: (reservationId) => api.get(`/api/venue/reservations/${reservationId}`),
+    
+    // 获取场地安排表（兼容旧接口）
+    getScheduleByType: (date, venueType) => api.get('/api/venue/schedule', { date, venueType })
+  },
+  
+  // 5.1 球馆管理模块（管理员）
+  venueAdmin: {
+    // 获取所有场地列表（管理员）
+    getAllVenues: (params = {}) => api.get('/api/admin/venues', params),
+    
+    // 创建场地
+    createVenue: (venueData) => api.post('/api/admin/venues', venueData),
+    
+    // 更新场地信息
+    updateVenue: (venueId, venueData) => api.put(`/api/admin/venues/${venueId}`, venueData),
+    
+    // 删除场地
+    deleteVenue: (venueId) => api.delete(`/api/admin/venues/${venueId}`),
+    
+    // 获取所有预约记录（管理员）
+    getAllReservations: (params = {}) => api.get('/api/admin/venue-reservations', params),
+    
+    // 审核预约
+    auditReservation: (reservationId, action, comment) => 
+      api.put(`/api/admin/venue-reservations/${reservationId}/audit`, { action, comment }),
+    
+    // 获取场地统计信息
+    getVenueStats: (params = {}) => api.get('/api/admin/venue-stats', params)
   },
   
   // 6. 用餐验证模块

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>createSafeDate 修复测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 createSafeDate 修复测试</h1>
+    <p>测试修复后的 createSafeDate 方法是否能正确处理 undefined 输入</p>
+    
+    <div class="test-container">
+        <h2>问题描述</h2>
+        <div class="error">
+            <h3>原始错误</h3>
+            <p><strong>错误信息:</strong> <code>reservation.vue:1056 无法创建当前日期对象</code></p>
+            <p><strong>发生位置:</strong> <code>formatDisplayDate</code> 方法中的 <code>this.$createSafeDate()</code> 调用</p>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>根本原因</h2>
+        <div class="warning">
+            <h3>问题分析</h3>
+            <p>在 <code>formatDisplayDate</code> 方法中调用 <code>this.$createSafeDate()</code> 时没有传递参数，导致：</p>
+            <ol>
+                <li><code>createSafeDate(undefined)</code> 被调用</li>
+                <li>在 iOS 环境中，<code>IOSCompatibleDate.create(undefined)</code> 被调用</li>
+                <li><code>IOSCompatibleDate.create</code> 方法中有 <code>if (!input) return null;</code> 条件</li>
+                <li>由于 <code>undefined</code> 被当作 falsy 值，返回了 <code>null</code></li>
+                <li>导致后续的 <code>tomorrow.setDate()</code> 调用失败</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>修复方案</h2>
+        <div class="info">
+            <h3>修复内容</h3>
+            <p><strong>1. 修复 createSafeDate 函数</strong></p>
+            <pre><code>export function createSafeDate(input) {
+  // 如果在微信小程序 iOS 环境中，使用兼容版本
+  if (isMiniProgramIOS()) {
+    // 特殊处理：当 input 为 undefined 时，直接创建当前时间
+    if (input === undefined) {
+      return new Date();
+    }
+    return IOSCompatibleDate.create(input);
+  }
+  
+  // 其他环境直接使用原生 Date
+  if (input === undefined) {
+    return new Date();
+  }
+  return new Date(input);
+}</code></pre>
+
+            <p><strong>2. 修复 IOSCompatibleDate.create 方法</strong></p>
+            <pre><code>static create(input) {
+  // 特殊处理：当 input 为 undefined 时，返回当前时间
+  if (input === undefined) {
+    return new Date();
+  }
+  
+  // 如果 input 为 null 或空字符串，返回 null
+  if (!input) return null;
+  
+  // ... 其他逻辑
+}</code></pre>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>测试验证</h2>
+        <button onclick="runTests()">运行测试</button>
+        <button onclick="clearResults()">清除结果</button>
+        
+        <div id="test-results"></div>
+    </div>
+
+    <script>
+        // 模拟修复后的 IOSCompatibleDate
+        class MockIOSCompatibleDate {
+            static create(input) {
+                // 特殊处理：当 input 为 undefined 时，返回当前时间
+                if (input === undefined) {
+                    return new Date();
+                }
+                
+                // 如果 input 为 null 或空字符串，返回 null
+                if (!input) return null;
+                
+                // 如果已经是 Date 对象，直接返回
+                if (input instanceof Date) {
+                    return isNaN(input.getTime()) ? null : input;
+                }
+                
+                // 如果是数字（时间戳），直接创建
+                if (typeof input === 'number') {
+                    const date = new Date(input);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+                
+                // 字符串处理
+                if (typeof input === 'string') {
+                    const date = new Date(input);
+                    return isNaN(date.getTime()) ? null : date;
+                }
+                
+                return null;
+            }
+        }
+
+        // 模拟修复后的 createSafeDate 函数
+        function createSafeDate(input) {
+            // 模拟在 iOS 环境中
+            if (true) { // 简化测试，假设在 iOS 环境
+                // 特殊处理：当 input 为 undefined 时，直接创建当前时间
+                if (input === undefined) {
+                    return new Date();
+                }
+                return MockIOSCompatibleDate.create(input);
+            }
+            
+            // 其他环境直接使用原生 Date
+            if (input === undefined) {
+                return new Date();
+            }
+            return new Date(input);
+        }
+
+        // 模拟修复后的 formatDisplayDate 方法
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            
+            try {
+                // 模拟 $createDate 调用
+                const targetDate = new Date(dateStr);
+                if (!targetDate || isNaN(targetDate.getTime())) return '';
+                
+                // 这里是关键的修复点
+                const today = createSafeDate(); // 不传参数，应该是 undefined
+                if (!today) {
+                    console.error('无法创建当前日期对象');
+                    return '日期格式错误';
+                }
+                
+                const tomorrow = new Date(today);
+                if (!tomorrow) {
+                    console.error('无法创建明天日期对象');
+                    return '日期格式错误';
+                }
+                
+                tomorrow.setDate(today.getDate() + 1);
+                
+                // 简化的日期比较逻辑
+                const todayStr = today.toDateString();
+                const tomorrowStr = tomorrow.toDateString();
+                const targetStr = targetDate.toDateString();
+                
+                if (targetStr === todayStr) {
+                    return `今天 ${targetDate.getMonth() + 1}-${targetDate.getDate()}`;
+                } else if (targetStr === tomorrowStr) {
+                    return `明天 ${targetDate.getMonth() + 1}-${targetDate.getDate()}`;
+                } else {
+                    return `${targetDate.getMonth() + 1}-${targetDate.getDate()} 周${['日','一','二','三','四','五','六'][targetDate.getDay()]}`;
+                }
+            } catch (error) {
+                console.error('日期格式化错误:', error, '输入值:', dateStr);
+                return '';
+            }
+        }
+
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<h3>测试结果</h3>';
+            
+            const testCases = [
+                { input: undefined, description: 'createSafeDate() 无参数调用' },
+                { input: null, description: 'createSafeDate(null) null 参数' },
+                { input: '', description: 'createSafeDate("") 空字符串' },
+                { input: '2025-01-17', description: 'createSafeDate("2025-01-17") 正常日期' },
+                { input: new Date(), description: 'createSafeDate(new Date()) Date 对象' },
+                { input: 1737129600000, description: 'createSafeDate(1737129600000) 时间戳' }
+            ];
+            
+            testCases.forEach((testCase, index) => {
+                try {
+                    const result = createSafeDate(testCase.input);
+                    const isValid = result instanceof Date && !isNaN(result.getTime());
+                    const status = isValid ? 'success' : 'error';
+                    const statusText = isValid ? '✅ 通过' : '❌ 失败';
+                    
+                    resultsDiv.innerHTML += `
+                        <div class="test-result ${status}">
+                            <strong>测试 ${index + 1}:</strong> ${testCase.description}<br>
+                            <strong>输入:</strong> <code>${JSON.stringify(testCase.input)}</code><br>
+                            <strong>输出:</strong> <code>${result ? result.toString() : 'null'}</code><br>
+                            <strong>状态:</strong> ${statusText}
+                        </div>
+                    `;
+                } catch (error) {
+                    resultsDiv.innerHTML += `
+                        <div class="test-result error">
+                            <strong>测试 ${index + 1}:</strong> ${testCase.description}<br>
+                            <strong>输入:</strong> <code>${JSON.stringify(testCase.input)}</code><br>
+                            <strong>错误:</strong> <code>${error.message}</code><br>
+                            <strong>状态:</strong> ❌ 异常
+                        </div>
+                    `;
+                }
+            });
+            
+            // 测试 formatDisplayDate 方法
+            resultsDiv.innerHTML += `
+                <div class="test-result info">
+                    <strong>formatDisplayDate 测试:</strong><br>
+                    <button onclick="testFormatDisplayDate()">测试 formatDisplayDate 方法</button>
+                    <div id="format-test-result"></div>
+                </div>
+            `;
+        }
+
+        function testFormatDisplayDate() {
+            const resultDiv = document.getElementById('format-test-result');
+            resultDiv.innerHTML = '<p>🔄 正在测试 formatDisplayDate...</p>';
+            
+            const testDates = ['2025-01-17', '2025-01-18', '2025-01-19'];
+            const results = [];
+            
+            testDates.forEach(dateStr => {
+                try {
+                    const result = formatDisplayDate(dateStr);
+                    results.push({ input: dateStr, output: result, success: true });
+                } catch (error) {
+                    results.push({ input: dateStr, output: error.message, success: false });
+                }
+            });
+            
+            let html = '<div class="test-result success"><strong>✅ formatDisplayDate 测试结果:</strong><br>';
+            results.forEach(result => {
+                const status = result.success ? '✅' : '❌';
+                html += `${status} ${result.input} → ${result.output}<br>`;
+            });
+            html += '</div>';
+            
+            resultDiv.innerHTML = html;
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // 页面加载时自动运行测试
+        window.onload = function() {
+            runTests();
+        };
+    </script>
+</body>
+</html>

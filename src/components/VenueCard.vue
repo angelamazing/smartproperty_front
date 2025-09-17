@@ -92,6 +92,8 @@
 </template>
 
 <script>
+import VenueUtils from '@/utils/venueUtils.js'
+
 export default {
   name: 'VenueCard',
   props: {
@@ -129,40 +131,21 @@ export default {
      * 获取场地状态文本
      */
     getStatusText(status) {
-      const statusMap = {
-        'open': '开放',
-        'closed': '关闭',
-        'maintenance': '维护中'
-      }
-      return statusMap[status] || '未知状态'
+      return VenueUtils.getVenueStatusText(status)
     },
 
     /**
      * 获取场地类型文本
      */
     getTypeText(type) {
-      const typeMap = {
-        'badminton': '羽毛球',
-        'pingpong': '乒乓球',
-        'basketball': '篮球',
-        'meeting': '会议室',
-        'other': '其他'
-      }
-      return typeMap[type] || '未知类型'
+      return VenueUtils.getVenueTypeText(type)
     },
 
     /**
      * 获取场地类型图标
      */
     getTypeIcon(type) {
-      const iconMap = {
-        'badminton': '🏸',
-        'pingpong': '🏓',
-        'basketball': '🏀',
-        'meeting': '🏢',
-        'other': '⚽'
-      }
-      return iconMap[type] || '🏟️'
+      return VenueUtils.getVenueTypeIcon(type)
     },
 
     /**
@@ -176,12 +159,7 @@ export default {
      * 获取时间段状态文本
      */
     getSlotStatusText(status) {
-      const statusMap = {
-        'available': '可预约',
-        'reserved': '已预约',
-        'maintenance': '维护中'
-      }
-      return statusMap[status] || '未知状态'
+      return VenueUtils.getTimeSlotStatusText(status)
     },
 
     /**

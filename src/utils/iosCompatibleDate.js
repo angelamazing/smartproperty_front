@@ -23,6 +23,12 @@ export class IOSCompatibleDate {
    * @returns {Date|null} 创建的 Date 对象，失败返回 null
    */
   static create(input) {
+    // 特殊处理：当 input 为 undefined 时，返回当前时间
+    if (input === undefined) {
+      return new Date();
+    }
+    
+    // 如果 input 为 null 或空字符串，返回 null
     if (!input) return null;
     
     // 如果已经是 Date 对象，直接返回

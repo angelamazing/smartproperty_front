@@ -495,6 +495,15 @@ export default {
     },
 
     /**
+     * 跳转到用餐验证
+     */
+    goToVerification() {
+      uni.navigateTo({
+        url: '/pages/verification/verification'
+      })
+    },
+
+    /**
      * 更换头像 - 已禁用，使用静态头像
      */
     changeAvatar() {

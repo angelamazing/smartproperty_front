@@ -435,6 +435,7 @@ import BottomNav from '@/components/BottomNav.vue'
 import VenueEditModal from '@/components/VenueEditModal.vue'
 import TimeSlotEditModal from '@/components/TimeSlotEditModal.vue'
 import api from '@/utils/api'
+import VenueUtils from '@/utils/venueUtils.js'
 import timeMixin from '@/mixins/timeMixin.js'
 
 export default {
@@ -592,7 +593,7 @@ export default {
         }
 
         if (this.typeFilterIndex > 0) {
-          const types = ['', 'basketball', 'badminton', 'pingpong', 'tennis', 'football']
+          const types = ['', 'badminton', 'pingpong', 'basketball', 'meeting', 'other']
           params.type = types[this.typeFilterIndex]
         }
 
@@ -601,11 +602,13 @@ export default {
           params.status = statuses[this.statusFilterIndex]
         }
 
-        const response = await api.admin.getVenuesList(params)
-        if (response.success) {
-          this.venuesList = response.data.list || []
-          this.totalVenues = response.data.total || 0
+        const response = await api.venueAdmin.getAllVenues(params)
+        if (response && response.success) {
+          this.venuesList = response.data?.list || []
+          this.totalVenues = response.data?.total || 0
           this.totalPages = Math.ceil(this.totalVenues / this.pageSize)
+        } else {
+          throw new Error(response?.message || '获取场地列表失败')
         }
       } catch (error) {
         console.error('加载场地列表失败:', error)
@@ -623,9 +626,9 @@ export default {
      */
     async loadVenueOptions() {
       try {
-        const response = await api.admin.getVenuesList({ pageSize: 10 })
-        if (response.success) {
-          const venues = response.data.list || []
+        const response = await api.venueAdmin.getAllVenues({ pageSize: 10 })
+        if (response && response.success) {
+          const venues = response.data?.list || []
           this.venueOptions = ['请选择场地', ...venues.map(venue => venue.name)]
           this.venueFilterOptions = ['全部场地', ...venues.map(venue => venue.name)]
         }
@@ -768,9 +771,11 @@ export default {
           params.status = statuses[this.reservationStatusIndex]
         }
 
-        const response = await api.admin.getReservationsList(params)
-        if (response.success) {
-          this.reservationsList = response.data || []
+        const response = await api.venueAdmin.getAllReservations(params)
+        if (response && response.success) {
+          this.reservationsList = response.data?.list || []
+        } else {
+          throw new Error(response?.message || '获取预约列表失败')
         }
       } catch (error) {
         console.error('加载预约列表失败:', error)
@@ -779,18 +784,20 @@ export default {
 
     async confirmReservation(reservation) {
       try {
-        const response = await api.admin.confirmReservation(reservation.id)
-        if (response.success) {
+        const response = await api.venueAdmin.auditReservation(reservation.id, 'approve', '管理员确认')
+        if (response && response.success) {
           uni.showToast({
             title: '确认成功',
             icon: 'success'
           })
           this.loadReservations()
+        } else {
+          throw new Error(response?.message || '确认失败')
         }
       } catch (error) {
         console.error('确认预约失败:', error)
         uni.showToast({
-          title: '确认失败',
+          title: error.message || '确认失败',
           icon: 'error'
         })
       }
@@ -803,18 +810,20 @@ export default {
         success: async (res) => {
           if (res.confirm) {
             try {
-              const response = await api.admin.rejectReservation(reservation.id)
-              if (response.success) {
+              const response = await api.venueAdmin.auditReservation(reservation.id, 'reject', '管理员拒绝')
+              if (response && response.success) {
                 uni.showToast({
                   title: '已拒绝预约',
                   icon: 'success'
                 })
                 this.loadReservations()
+              } else {
+                throw new Error(response?.message || '拒绝失败')
               }
             } catch (error) {
               console.error('拒绝预约失败:', error)
               uni.showToast({
-                title: '操作失败',
+                title: error.message || '操作失败',
                 icon: 'error'
               })
             }
